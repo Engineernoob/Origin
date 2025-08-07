@@ -19,4 +19,10 @@ export class User {
 
   @Column({ nullable: true })
   picture?: string;
+
+  @Column('simple-array', { default: '' }) // Stores tags as CSV
+  watchedTags: string[];
+
+  @Column('simple-array', { default: '' }) // Stores subscriptions as CSV
+  subscriptions: string[];
 }

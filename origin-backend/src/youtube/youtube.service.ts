@@ -3,6 +3,12 @@ import axios from 'axios';
 
 @Injectable()
 export class YoutubeService {
+  findByTags(tags: any) {
+      throw new Error('Method not implemented.');
+  }
+  fetchRecentFromChannels(subs: any) {
+      throw new Error('Method not implemented.');
+  }
   private readonly baseUrl = 'https://www.googleapis.com/youtube/v3';
 
   async searchVideos(query: string, accessToken: string) {
