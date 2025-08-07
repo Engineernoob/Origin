@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import '../styles/globals.css';
+import './style/globals.css';
 
 export const metadata: Metadata = {
   title: 'Origin - The Ad-Free Video Platform',
