@@ -1,28 +1,28 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { Header } from "../app/components/Header";
-import { Sidebar } from "../app/components/Sidebar";
-import { VideoGrid } from "../app/components/VideoGrid";
+
+import { useRef, useState } from "react";
+import { Header } from "./components/Header";
+import { Sidebar } from "./components/Sidebar";
+import { VideoGrid } from "./components/VideoGrid";
 
 export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const menuBtnRef = useRef<HTMLButtonElement>(null); // ✅ no union
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <div className="min-h-dvh bg-white">
-      <Header onMenuClick={() => setSidebarOpen(v => !v)} menuBtnRef={menuBtnRef} />
+    <div className="min-h-screen bg-white">
+      <Header
+        onMenuClick={() => setSidebarOpen((v) => !v)}
+        menuBtnRef={menuBtnRef}
+      />
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         currentSection="home"
         isAuthenticated={false}
-        openerRef={menuBtnRef} // ✅ same exact type
+        openerRef={menuBtnRef}
       />
-      <main className="px-4 pb-10 pt-4 md:ml-64">
-        <div className="mx-auto w-full max-w-[1280px]">
-          <VideoGrid />
-        </div>
-      </main>
+      <VideoGrid />
     </div>
   );
 }

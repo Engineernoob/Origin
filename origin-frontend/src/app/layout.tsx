@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import "./style/globals.css";
 import { Providers } from "./providers";
 
@@ -8,6 +8,7 @@ export const metadata: Metadata = {
     "A nostalgic, ad-free video platform inspired by 2010–2015 YouTube, with a rebellious twist. No corporate BS. Pure content.",
   keywords: ["video platform", "ad-free", "content creators", "origin", "underground"],
   authors: [{ name: "Origin Platform" }],
+  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
   openGraph: {
     title: "Origin - The Ad-Free Video Platform",
@@ -20,12 +21,6 @@ export const metadata: Metadata = {
     title: "Origin - The Ad-Free Video Platform",
     description: "A nostalgic, ad-free video platform with a rebellious twist.",
   },
-};
-
-// ✅ separate viewport export (instead of inside metadata)
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
