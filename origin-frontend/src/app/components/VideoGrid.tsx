@@ -122,22 +122,22 @@ export function VideoGrid() {
     <main className="ml-64 p-6">
       {/* Section header */}
       <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-4 mb-4 text-black">
           <h2>Recommended</h2>
           <div className="flex gap-2">
-            <span className="px-3 py-1 bg-gray-100 rounded-full text-sm cursor-pointer hover:bg-gray-200 transition-colors">
+            <span className="px-3 py-1 bg-gray-100 rounded-full text-sm cursor-pointer hover:bg-gray-200 transition-colors text-black">
               All
             </span>
             <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm cursor-pointer hover:bg-red-200 transition-colors">
               🔥 Rebel Content
             </span>
-            <span className="px-3 py-1 bg-gray-100 rounded-full text-sm cursor-pointer hover:bg-gray-200 transition-colors">
+            <span className="px-3 py-1 bg-gray-100 rounded-full text-sm cursor-pointer hover:bg-gray-200 transition-colors text-black">
               Gaming
             </span>
-            <span className="px-3 py-1 bg-gray-100 rounded-full text-sm cursor-pointer hover:bg-gray-200 transition-colors">
+            <span className="px-3 py-1 bg-gray-100 rounded-full text-sm cursor-pointer hover:bg-gray-200 transition-colors text-black">
               Music
             </span>
-            <span className="px-3 py-1 bg-gray-100 rounded-full text-sm cursor-pointer hover:bg-gray-200 transition-colors">
+            <span className="px-3 py-1 bg-gray-100 rounded-full text-sm cursor-pointer hover:bg-gray-200 transition-colors text-black">
               Tech
             </span>
           </div>

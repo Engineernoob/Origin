@@ -40,7 +40,7 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-64 bg-white border-r overflow-y-auto">
+    <aside className="fixed left-0 top-14 h-[calc(100vh-3.5rem)] w-64 bg-white border-r overflow-y-auto text-black">
       <div className="p-3 space-y-1">
         {/* Main navigation */}
         {mainItems.map((item) => (
@@ -100,7 +100,7 @@ export function Sidebar() {
           <p className="text-red-600 font-medium">
             ⚡ No ads. No corporate BS. Pure content.
           </p>
-          <p>© 2024 Origin Platform</p>
+          <p>© 2025 Origin Platform</p>
         </div>
       </div>
     </aside>

@@ -28,11 +28,11 @@ export function Header() {
           <div className="relative flex">
             <Input
               placeholder="Search"
-              className="rounded-l-full rounded-r-none border-r-0 bg-white focus:ring-blue-500 focus:border-blue-500 pl-4 pr-4 h-10"
+              className="rounded-l-full rounded-r-none border-r-0 bg-white focus:ring-blue-500 focus:border-blue-500 pl-4 pr-4 h-10 text-black"
             />
             <Button 
               type="submit" 
-              className="rounded-r-full rounded-l-none bg-gray-50 hover:bg-gray-100 border border-l-0 border-gray-300 px-6 h-10"
+              className="rounded-r-full rounded-l-none bg-gray-50 hover:bg-gray-100 border border-l-0 border-gray-300 px-6 h-10 text-black"
               variant="ghost"
             >
               <Search className="h-4 w-4 text-gray-600" />
@@ -42,13 +42,13 @@ export function Header() {
 
         {/* Right side buttons */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+          <Button variant="ghost" size="icon" className="hover:bg-gray-100 text-black">
             <Upload className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+          <Button variant="ghost" size="icon" className="hover:bg-gray-100 text-black">
             <Bell className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+          <Button variant="ghost" size="icon" className="hover:bg-gray-100 text-black">
             <User className="h-5 w-5" />
           </Button>
         </div>
