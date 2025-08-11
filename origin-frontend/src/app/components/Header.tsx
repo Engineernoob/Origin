@@ -1,202 +1,192 @@
 "use client";
 
 import { useState } from "react";
-import { Search, User, Bell, Upload, Menu, Flame } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Menu, Flame, User, Bell, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { Badge } from "./ui/badge";
-import { AuthModal } from "../components/auth/AuthModel"; // ✅ fixed import name/path
 import { useAuth } from "@/app/lib/auth";
+import { AuthModal } from "../components/auth/AuthModel";
 import { toast } from "sonner";
 
-interface HeaderProps {
+type HeaderProps = {
   onMenuClick?: () => void;
-  onSearch?: (query: string) => void;
-  /** Optional legacy props; will be overridden by auth context if present */
-  isAuthenticated?: boolean;
-  isSidebarOpen?: boolean;
-  user?: {
-    name: string;
-    avatar?: string;
-    isCreator?: boolean;
-  };
-}
+  menuBtnRef?: React.RefObject<HTMLButtonElement | null>; // optional: hook up your sidebar toggle
+};
 
-export function Header({
-  onMenuClick,
-  onSearch,
-  isAuthenticated = false,
-  isSidebarOpen = false,
-  user: userProp,
-}: HeaderProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+export function Header({ onMenuClick, menuBtnRef }: HeaderProps) {
+  const router = useRouter();
+  const { user, setUser, signOut } = useAuth();
 
-  // Auth wiring
-  const { user: userCtx, setUser, signOut } = useAuth();
-  const authed = !!userCtx || isAuthenticated;
-  const user = userCtx ?? userProp;
-
+  const [q, setQ] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [openSignIn, setOpenSignIn] = useState(false);
   const [openSignUp, setOpenSignUp] = useState(false);
 
-  const handleSearch = (e: React.FormEvent) => {
+  function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onSearch?.(searchQuery);
-  };
+    const query = q.trim();
+    if (!query) return;
+    router.push(`/search?q=${encodeURIComponent(query)}`);
+  }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
-      <div className="mx-auto flex h-16 max-w-[1280px] items-center gap-3 px-4">
-        {/* Left section - Menu + Logo */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onMenuClick}
-            className={`transition-colors ${isSidebarOpen ? "bg-secondary" : ""}`}
-            aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+    <header className="sticky top-0 z-50 w-full border-b bg-white">
+      <div className="mx-auto flex h-[64px] max-w-[1280px] items-center gap-3 px-4">
+        {/* Left: menu + brand */}
+        <Button
+          ref={menuBtnRef}
+          variant="ghost"
+          size="icon"
+          className="shrink-0 rounded-md"
+          aria-label="Open menu"
+          onClick={onMenuClick}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
 
-          <div className="flex items-center gap-2">
-            <div className="origin-gradient flex h-8 w-8 items-center justify-center rounded-md rebel-glow">
-              <Flame className="h-5 w-5 text-white" />
-            </div>
-            <span className="hidden sm:block font-bold text-xl">Origin</span>
-            <Badge variant="destructive" className="hidden md:inline-flex text-xs">
-              AD-FREE
-            </Badge>
+        <div className="flex select-none items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-b from-[#ef4444] to-[#b91c1c] shadow-[0_4px_16px_-4px_rgba(239,68,68,0.45)]">
+            <Flame className="h-5 w-5 text-white" />
           </div>
+          <span className="font-semibold leading-none text-[20px] tracking-[-0.01em]">
+            Origin
+          </span>
+          <span className="ml-1 rounded-md bg-neutral-900 px-2 py-[2px] text-[10px] font-semibold leading-none text-white">
+            AD-FREE
+          </span>
         </div>
 
-        {/* Center section - Search (rounded container + Advanced + icon button) */}
-        <div className="relative mx-2 flex-1">
-          <form onSubmit={handleSearch} className="flex items-center">
-            <div className="flex w-full items-center gap-2 rounded-xl border bg-white pl-3 pr-1 shadow-sm focus-within:border-destructive">
-              <Input
-                type="text"
-                placeholder="Search videos, creators, rebel content..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 flex-1 border-0 shadow-none focus-visible:ring-0"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-sm rounded-md px-3"
-                onClick={() => setShowAdvancedSearch((v) => !v)}
-                aria-expanded={showAdvancedSearch}
-              >
-                Advanced
-              </Button>
-              <Button type="submit" variant="outline" size="icon" className="h-9 w-9">
-                <Search className="h-4 w-4" />
-              </Button>
-            </div>
-          </form>
+        {/* Center: search */}
+        <form
+          onSubmit={onSubmit}
+          className="mx-3 flex min-w-0 flex-1 items-center"
+        >
+          <div className="flex w-full items-center rounded-xl border border-gray-200 bg-white pl-3 pr-1 shadow-sm focus-within:border-[#e11d48] focus-within:ring-4 focus-within:ring-[#e11d48]/10">
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search videos, creators, rebel content..."
+              className="h-12 flex-1 border-0 bg-transparent p-0 text-[14px] placeholder:text-neutral-400 focus-visible:ring-0"
+              aria-label="Search"
+            />
 
-          {/* Advanced search options */}
-          {showAdvancedSearch && (
-            <div className="absolute top-12 left-0 right-0 mt-1 p-4 bg-white border rounded-lg shadow-lg z-10">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm mb-1">Duration</label>
-                  <select className="w-full p-2 border rounded text-sm">
-                    <option value="">Any duration</option>
-                    <option value="short">Under 4 minutes</option>
-                    <option value="medium">4–20 minutes</option>
-                    <option value="long">Over 20 minutes</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Upload time</label>
-                  <select className="w-full p-2 border rounded text-sm">
-                    <option value="">Any time</option>
-                    <option value="hour">Last hour</option>
-                    <option value="day">Last 24 hours</option>
-                    <option value="week">This week</option>
-                    <option value="month">This month</option>
-                    <option value="year">This year</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="rebel-content" className="rounded" />
-                  <label htmlFor="rebel-content" className="text-sm">
-                    <span className="text-destructive font-medium">REBEL</span> content only
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              className="rounded-md px-3 py-1 text-[13px] text-neutral-600 hover:bg-neutral-50"
+              aria-expanded={advancedOpen}
+              aria-controls="advanced-search"
+            >
+              Advanced
+            </button>
 
-        {/* Right section - User actions */}
-        <div className="flex items-center gap-2">
-          {authed && user ? (
-            <>
-              <Button variant="ghost" size="sm" className="hidden sm:flex">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload
-              </Button>
+            <Button
+              type="submit"
+              variant="outline"
+              size="icon"
+              className="h-12 w-12 rounded-[10px] border-l border-neutral-200 bg-white hover:bg-neutral-50"
+              aria-label="Run search"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+        </form>
 
-              <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-xs" />
-              </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full" aria-label="Account menu">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                      <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end">
-                  <DropdownMenuItem>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Your channel</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>Settings</DropdownMenuItem>
-                  <DropdownMenuItem>Help & feedback</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => {
-                      signOut();
-                      toast.success("Signed out");
-                    }}
-                  >
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setOpenSignIn(true)}>
-                Sign in
-              </Button>
-              <Button size="sm" className="origin-gradient" onClick={() => setOpenSignUp(true)}>
-                Join the Rebellion
-              </Button>
-            </div>
-          )}
-        </div>
+        {/* Right: auth area */}
+        {!user ? (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="h-10 rounded-lg border border-neutral-300 bg-white px-4 text-[14px] hover:bg-neutral-50"
+              onClick={() => setOpenSignIn(true)}
+            >
+              Sign in
+            </Button>
+            <Button
+              className="h-10 rounded-lg bg-[#e11d48] px-4 text-[14px] text-white shadow-[0_8px_20px_-6px_rgba(225,29,72,0.5)] hover:bg-[#be123c]"
+              onClick={() => setOpenSignUp(true)}
+            >
+              Join the Rebellion
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              className="hidden sm:flex h-10 rounded-lg px-3"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload
+            </Button>
+            <Button
+              variant="ghost"
+              className="relative h-10 w-10 rounded-lg"
+              aria-label="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-[#e11d48]" />
+            </Button>
+            <Button
+              variant="outline"
+              className="h-10 rounded-lg border-neutral-300 bg-white px-3 text-[14px] hover:bg-neutral-50"
+              onClick={() => {
+                signOut();
+                toast.success("Signed out");
+              }}
+            >
+              <User className="mr-2 h-4 w-4" />
+              Sign out
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Auth Modals */}
+      {/* Advanced dropdown */}
+      {advancedOpen && (
+        <div
+          className="mx-auto w-full max-w-[1280px] px-4"
+          id="advanced-search"
+        >
+          <div className="mt-2 rounded-xl border border-neutral-200 bg-white p-4 shadow-md">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-[13px] text-neutral-600">
+                  Duration
+                </label>
+                <select className="w-full rounded-lg border border-neutral-300 p-2 text-[14px]">
+                  <option>Any duration</option>
+                  <option>Under 4 minutes</option>
+                  <option>4–20 minutes</option>
+                  <option>Over 20 minutes</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[13px] text-neutral-600">
+                  Upload time
+                </label>
+                <select className="w-full rounded-lg border border-neutral-300 p-2 text-[14px]">
+                  <option>Any time</option>
+                  <option>Last hour</option>
+                  <option>Last 24 hours</option>
+                  <option>This week</option>
+                  <option>This month</option>
+                  <option>This year</option>
+                </select>
+              </div>
+              <label className="mt-6 flex items-center gap-2 text-[14px]">
+                <input type="checkbox" className="rounded" />
+                <span>
+                  <span className="font-medium text-[#e11d48]">REBEL</span>{" "}
+                  content only
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auth modals */}
       <AuthModal
         isOpen={openSignIn}
         onClose={() => setOpenSignIn(false)}

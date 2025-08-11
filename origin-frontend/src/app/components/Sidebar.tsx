@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home,
   TrendingUp,
@@ -32,6 +32,8 @@ interface SidebarProps {
   onNavigate?: (section: string) => void;
   currentSection?: string;
   onClose?: () => void;
+  /** Pass the element that opened the sidebar so focus can be restored on close (header menu button). */
+  openerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 interface NavItem {
@@ -49,13 +51,31 @@ interface NavSection {
   isCollapsible?: boolean;
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 768);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return isMobile;
+}
+
 export function Sidebar({
   isOpen,
   isAuthenticated = false,
   onNavigate,
   currentSection = "home",
   onClose,
+  openerRef,
 }: SidebarProps) {
+  const isMobile = useIsMobile();
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const firstFocusableRef = useRef<HTMLButtonElement>(null);
+  const lastFocusRef = useRef<HTMLElement | null>(null);
+
+  // Persist expanded sections
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
   >({
@@ -63,83 +83,137 @@ export function Sidebar({
     categories: false,
     library: isAuthenticated,
   });
-  const [isMobile, setIsMobile] = useState(false);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-
-  // Check if screen is mobile
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    try {
+      const saved = localStorage.getItem("origin:sidebar:expanded");
+      if (saved) setExpandedSections(JSON.parse(saved));
+    } catch {}
   }, []);
-
-  // Handle click outside to close sidebar on mobile
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isMobile &&
-        isOpen &&
-        sidebarRef.current &&
-        !sidebarRef.current.contains(event.target as Node)
-      ) {
-        onClose?.();
-      }
-    };
+    try {
+      localStorage.setItem(
+        "origin:sidebar:expanded",
+        JSON.stringify(expandedSections)
+      );
+    } catch {}
+  }, [expandedSections]);
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMobile, isOpen, onClose]);
+  const toggleSection = (sectionId: string) =>
+    setExpandedSections((p) => ({ ...p, [sectionId]: !p[sectionId] }));
 
-  // Handle escape key
+  // Freeze body scroll on mobile when open
   useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isOpen && isMobile) {
-        onClose?.();
-      }
-    };
-
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, isMobile, onClose]);
-
-  // Prevent body scroll when mobile sidebar is open
-  useEffect(() => {
-    if (isMobile && isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
+    if (!isMobile) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = isOpen ? "hidden" : prev || "unset";
     return () => {
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = prev || "unset";
     };
   }, [isMobile, isOpen]);
 
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [sectionId]: !prev[sectionId],
-    }));
-  };
+  // Close on click outside (mobile only)
+  useEffect(() => {
+    if (!isMobile || !isOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!sidebarRef.current) return;
+      if (!sidebarRef.current.contains(e.target as Node)) onClose?.();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [isMobile, isOpen, onClose]);
 
-  const mainNavigation: NavSection[] = [
-    {
-      items: [
-        { id: "home", label: "Home", icon: Home },
-        { id: "trending", label: "Trending", icon: TrendingUp, badge: "HOT" },
-        {
-          id: "subscriptions",
-          label: "Subscriptions",
-          icon: Users,
-          count: isAuthenticated ? 12 : undefined,
-        },
-      ],
-    },
-  ];
+  // ESC to close (mobile)
+  useEffect(() => {
+    if (!isMobile || !isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isMobile, isOpen, onClose]);
+
+  // Focus trap + restore focus to opener on close
+  useEffect(() => {
+    if (!isMobile) return;
+    if (isOpen) {
+      // remember last focused to restore later if openerRef not provided
+      lastFocusRef.current = (document.activeElement as HTMLElement) ?? null;
+      // focus first focusable inside
+      setTimeout(() => firstFocusableRef.current?.focus(), 0);
+      const handleTab = (e: KeyboardEvent) => {
+        if (e.key !== "Tab" || !sidebarRef.current) return;
+        const focusables = sidebarRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      };
+      document.addEventListener("keydown", handleTab);
+      return () => document.removeEventListener("keydown", handleTab);
+    } else {
+      // restore focus
+      (openerRef?.current ?? lastFocusRef.current)?.focus?.();
+    }
+  }, [isMobile, isOpen, openerRef]);
+
+  // Swipe-to-close (mobile)
+  useEffect(() => {
+    if (!isMobile || !isOpen || !sidebarRef.current) return;
+    const el = sidebarRef.current;
+    let startX = 0;
+    let dx = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      dx = 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      dx = e.touches[0].clientX - startX;
+      // ignore right-to-left swipe; we only care if user swipes left on the drawer
+      if (dx < 0) {
+        el.style.transform = `translateX(${dx}px)`;
+        el.style.opacity = `${Math.max(0.3, 1 + dx / 300)}`;
+      }
+    };
+    const onTouchEnd = () => {
+      if (dx < -80) onClose?.();
+      el.style.transform = "";
+      el.style.opacity = "";
+    };
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: true });
+    el.addEventListener("touchend", onTouchEnd);
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [isMobile, isOpen, onClose]);
+
+  const mainNavigation: NavSection[] = useMemo(
+    () => [
+      {
+        items: [
+          { id: "home", label: "Home", icon: Home },
+          { id: "trending", label: "Trending", icon: TrendingUp, badge: "HOT" },
+          {
+            id: "subscriptions",
+            label: "Subscriptions",
+            icon: Users,
+            count: isAuthenticated ? 12 : undefined,
+          },
+        ],
+      },
+    ],
+    [isAuthenticated]
+  );
 
   const librarySection: NavSection[] = isAuthenticated
     ? [
@@ -199,28 +273,46 @@ export function Sidebar({
     },
   ];
 
-  const allSections = [
-    ...mainNavigation,
-    ...librarySection,
-    ...rebelZoneSection,
-    ...categoriesSection,
-  ];
-
   const handleItemClick = (itemId: string) => {
     onNavigate?.(itemId);
-    // Close sidebar on mobile after navigation
-    if (isMobile) {
-      onClose?.();
+    if (isMobile) onClose?.();
+  };
+
+  // roving tabindex for keyboard ↑/↓ inside the nav list
+  const listRef = useRef<HTMLDivElement>(null);
+  const onListKeyDown = (e: React.KeyboardEvent) => {
+    if (!listRef.current) return;
+    const focusables = listRef.current.querySelectorAll<HTMLButtonElement>(
+      "button[role='menuitem']"
+    );
+    if (focusables.length === 0) return;
+
+    const idx = Array.from(focusables).findIndex(
+      (el) => el === document.activeElement
+    );
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next =
+        focusables[(idx + 1 + focusables.length) % focusables.length];
+      next?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const prev =
+        focusables[(idx - 1 + focusables.length) % focusables.length];
+      prev?.focus();
     }
   };
 
-  const renderNavItem = (item: NavItem) => {
+  const renderNavItem = (item: NavItem, firstFocusable = false) => {
     const isActive = currentSection === item.id;
     const Icon = item.icon;
 
     return (
       <Button
         key={item.id}
+        ref={firstFocusable ? firstFocusableRef : undefined}
+        role="menuitem"
+        tabIndex={0}
         variant={isActive ? "secondary" : "ghost"}
         className={`w-full justify-start h-10 px-3 transition-all duration-200 ${
           isActive ? "bg-secondary shadow-sm" : ""
@@ -266,6 +358,7 @@ export function Sidebar({
 
   const renderSection = (section: NavSection, sectionId: string) => {
     const isExpanded = expandedSections[sectionId];
+    const headingId = `section-${sectionId}`;
 
     return (
       <div key={sectionId} className="mb-4">
@@ -276,6 +369,8 @@ export function Sidebar({
                 variant="ghost"
                 className="w-full justify-start h-8 px-0 text-xs font-medium text-muted-foreground hover:text-foreground"
                 onClick={() => toggleSection(sectionId)}
+                aria-expanded={isExpanded}
+                aria-controls={`${headingId}-panel`}
               >
                 {isExpanded ? (
                   <ChevronDown className="h-4 w-4 mr-2" />
@@ -285,114 +380,124 @@ export function Sidebar({
                 {section.title.toUpperCase()}
               </Button>
             ) : (
-              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <h3
+                id={headingId}
+                className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+              >
                 {section.title}
               </h3>
             )}
           </div>
         )}
 
-        {(!section.isCollapsible || isExpanded) && (
-          <div className="space-y-1">{section.items.map(renderNavItem)}</div>
-        )}
+        <div
+          id={`${headingId}-panel`}
+          hidden={section.isCollapsible ? !isExpanded : false}
+          aria-labelledby={section.isCollapsible ? headingId : undefined}
+        >
+          <div className="space-y-1">
+            {section.items.map((it, idx) =>
+              renderNavItem(it, sectionId === "main" && idx === 0)
+            )}
+          </div>
+        </div>
 
         {section.title && <Separator className="mt-4" />}
       </div>
     );
   };
 
-  // Don't render anything if not open on mobile
-  if (isMobile && !isOpen) {
-    return null;
-  }
+  // Don’t render if closed on mobile (keeps DOM light)
+  if (isMobile && !isOpen) return null;
 
   return (
     <>
       {/* Overlay for mobile */}
       {isMobile && isOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-40 md:hidden transition-opacity duration-300 backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] md:hidden motion-safe:transition-opacity"
           onClick={onClose}
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar */}
       <aside
         ref={sidebarRef}
-        className={`
-          ${isMobile ? "fixed" : "sticky"} 
-          ${isMobile ? "top-0" : "top-16"} 
-          ${isMobile ? "z-50" : "z-10"}
-          w-64 bg-sidebar/95 backdrop-blur-sm border-r border-sidebar-border 
-          ${isMobile ? "h-screen" : "h-[calc(100vh-4rem)]"}
-          transition-all duration-300 ease-in-out
-          ${
-            isOpen
+        className={[
+          isMobile
+            ? "fixed top-0 z-50 h-screen"
+            : "sticky top-16 z-10 h-[calc(100vh-4rem)]",
+          "w-64 border-r bg-white",
+          "motion-safe:transition-all motion-safe:duration-300",
+          isMobile
+            ? isOpen
               ? "translate-x-0 opacity-100"
-              : isMobile
-              ? "-translate-x-full opacity-0"
-              : "translate-x-0 opacity-100"
-          }
-          ${!isOpen && !isMobile ? "hidden" : ""}
-          ${isMobile ? "shadow-2xl" : "shadow-sm"}
-        `}
-        role="navigation"
+              : "-translate-x-full opacity-0"
+            : "translate-x-0 opacity-100",
+          isMobile ? "shadow-2xl" : "shadow-sm",
+        ].join(" ")}
+        role={isMobile ? "dialog" : "navigation"}
+        aria-modal={isMobile ? true : undefined}
         aria-label="Main navigation"
-        aria-hidden={!isOpen}
       >
-        {/* Mobile header with close button */}
+        {/* Mobile header */}
         {isMobile && (
-          <div className="flex items-center justify-between p-4 border-b border-sidebar-border bg-sidebar/95 backdrop-blur-sm">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 origin-gradient rounded-lg flex items-center justify-center rebel-glow">
-                <span className="text-white font-bold text-sm">O</span>
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <div className="flex items-center gap-2">
+              <div className="origin-gradient rebel-glow flex h-8 w-8 items-center justify-center rounded-lg">
+                <span className="text-sm font-bold text-white">O</span>
               </div>
-              <span className="font-bold text-lg">Origin</span>
+              <span className="text-lg font-bold">Origin</span>
             </div>
             <Button
+              ref={firstFocusableRef}
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
+              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+              aria-label="Close sidebar"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
         )}
 
-        <ScrollArea
-          className={`${isMobile ? "h-[calc(100vh-4rem)]" : "h-full"}`}
-        >
-          <nav className="p-4">
-            {/* Main Navigation */}
+        <ScrollArea className={isMobile ? "h-[calc(100vh-3.25rem)]" : "h-full"}>
+          <nav
+            ref={listRef}
+            onKeyDown={onListKeyDown}
+            className="p-4"
+            aria-label="Primary"
+          >
+            {/* Main */}
             {renderSection(mainNavigation[0], "main")}
 
-            {/* Library Section */}
-            {isAuthenticated && renderSection(librarySection[0], "library")}
+            {/* Library */}
+            {isAuthenticated &&
+              librarySection.length > 0 &&
+              renderSection(librarySection[0], "library")}
 
-            {/* Rebel Zone Section */}
+            {/* Rebel Zone */}
             {renderSection(rebelZoneSection[0], "rebelZone")}
 
-            {/* Categories Section */}
+            {/* Categories */}
             {renderSection(categoriesSection[0], "categories")}
 
             {/* Footer */}
-            <div className="mt-8 pt-4 border-t">
+            <div className="mt-8 border-t pt-4">
               <Button
                 variant="ghost"
-                className="w-full justify-start h-10 px-3"
+                className="h-10 w-full justify-start px-3"
+                role="menuitem"
+                tabIndex={0}
               >
-                <Settings className="h-5 w-5 mr-3" />
+                <Settings className="mr-3 h-5 w-5" />
                 Settings
               </Button>
-
-              <div className="mt-4 px-3">
-                <p className="text-xs text-muted-foreground">
-                  © 2024 Origin Platform
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Ad-free • Creator-focused • Rebellion-powered
-                </p>
+              <div className="mt-4 px-3 text-xs text-muted-foreground">
+                <p>© 2025 Origin Platform</p>
+                <p>Ad-free • Creator-focused • Rebellion-powered</p>
               </div>
             </div>
           </nav>
