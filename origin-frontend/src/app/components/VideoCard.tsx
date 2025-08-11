@@ -1,104 +1,224 @@
-import { Play, MoreVertical, Clock, Eye } from 'lucide-react';
-import Image from 'next/image';
-import { Button } from './ui/button';
+"use client";
+
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
+  MoreVertical,
+  Clock,
+  Eye,
+  ThumbsUp,
+  MessageCircle,
+  Share,
+  Plus,
+  Flame,
+} from "lucide-react";
 
 interface VideoCardProps {
   id: string;
   title: string;
-  creator: string;
   thumbnail: string;
-  duration: string;
+  creator: {
+    name: string;
+    avatar?: string;
+    isVerified?: boolean;
+  };
   views: string;
   uploadTime: string;
-  isRebel?: boolean;
+  duration: string;
+  isRebelContent?: boolean;
+  isBannedElsewhere?: boolean;
+  likes?: number;
+  comments?: number;
+  tags?: string[];
+  onClick?: () => void;
+  onCreatorClick?: () => void;
+  onAddToPlaylist?: () => void;
+  onShare?: () => void;
 }
 
 export function VideoCard({
   id,
   title,
-  creator,
   thumbnail,
-  duration,
+  creator,
   views,
   uploadTime,
-  isRebel = false
+  duration,
+  isRebelContent = false,
+  isBannedElsewhere = false,
+  likes = 0,
+  comments = 0,
+  tags = [],
+  onClick,
+  onCreatorClick,
+  onAddToPlaylist,
+  onShare,
 }: VideoCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
-    <div className="group cursor-pointer">
+    <div
+      className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Thumbnail */}
-      <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-200">
-        <Image
+      <div
+        className="relative aspect-video overflow-hidden bg-muted"
+        onClick={onClick}
+      >
+        <img
           src={thumbnail}
           alt={title}
-          fill
-          unoptimized // ✅ fallback for external URLs during dev
-          className="object-cover group-hover:scale-105 transition-transform duration-200"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
         />
 
         {/* Duration badge */}
-        <div className="absolute bottom-2 right-2 bg-black/80 text-white px-1.5 py-0.5 rounded text-xs">
+        <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded">
           {duration}
         </div>
 
-        {/* Rebel badge */}
-        {isRebel && (
-          <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-0.5 rounded text-xs font-medium">
-            🔥 REBEL
+        {/* Rebel/Banned badges */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {isRebelContent && (
+            <Badge variant="destructive" className="text-xs rebel-glow">
+              <Flame className="h-3 w-3 mr-1" />
+              REBEL
+            </Badge>
+          )}
+          {isBannedElsewhere && (
+            <Badge
+              variant="secondary"
+              className="text-xs bg-yellow-500 text-black"
+            >
+              BANNED ELSEWHERE
+            </Badge>
+          )}
+        </div>
+
+        {/* Hover overlay */}
+        {isHovered && (
+          <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="bg-white/90 hover:bg-white"
+            >
+              Watch Now
+            </Button>
           </div>
         )}
 
-        {/* Play overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <div className="bg-white/90 rounded-full p-3">
-              <Play className="h-6 w-6 text-gray-800 fill-current" />
-            </div>
+        {/* Quick actions on hover */}
+        {isHovered && (
+          <div className="absolute top-2 right-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onAddToPlaylist}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add to playlist
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onShare}>
+                  <Share className="mr-2 h-4 w-4" />
+                  Share
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Clock className="mr-2 h-4 w-4" />
+                  Save for later
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Video info */}
-      <div className="flex gap-3 mt-3">
-        {/* Creator avatar */}
-        <div className="flex-shrink-0">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <span className="text-white text-sm">{creator[0].toUpperCase()}</span>
-          </div>
-        </div>
-
-        {/* Video details */}
-        <div className="flex-1 min-w-0">
-          <h3 className="font-medium text-gray-900 line-clamp-2 leading-tight mb-1">
-            {title}
-          </h3>
-
-          <p className="text-gray-600 text-sm mb-1">
-            {creator}
-          </p>
-
-          <div className="flex items-center text-gray-500 text-sm gap-2">
-            <span className="flex items-center gap-1">
-              <Eye className="h-3 w-3" />
-              {views} views
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {uploadTime}
-            </span>
-          </div>
-        </div>
-
-        {/* More options */}
-        <div className="flex-shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+      {/* Content */}
+      <div className="p-4">
+        <div className="flex gap-3">
+          {/* Creator Avatar */}
+          <button
+            onClick={onCreatorClick}
+            className="flex-shrink-0 hover:opacity-80 transition-opacity"
           >
-            <MoreVertical className="h-4 w-4" />
-          </Button>
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={creator.avatar} alt={creator.name} />
+              <AvatarFallback className="text-xs">
+                {creator.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+          </button>
+
+          {/* Video Details */}
+          <div className="flex-1 min-w-0">
+            <h3
+              className="font-medium line-clamp-2 text-sm leading-snug mb-1 cursor-pointer hover:text-destructive transition-colors"
+              onClick={onClick}
+            >
+              {title}
+            </h3>
+
+            <button
+              onClick={onCreatorClick}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors mb-1"
+            >
+              {creator.name}
+              {creator.isVerified && (
+                <span className="ml-1 text-blue-500">✓</span>
+              )}
+            </button>
+
+            <div className="flex items-center text-xs text-muted-foreground mb-2">
+              <Eye className="h-3 w-3 mr-1" />
+              <span>{views} views</span>
+              <span className="mx-1">•</span>
+              <span>{uploadTime}</span>
+            </div>
+
+            {/* Engagement Stats */}
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <ThumbsUp className="h-3 w-3" />
+                <span>{likes > 0 ? likes : ""}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MessageCircle className="h-3 w-3" />
+                <span>{comments > 0 ? comments : ""}</span>
+              </div>
+            </div>
+
+            {/* Tags */}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {tags.slice(0, 3).map((tag, index) => (
+                  <Badge
+                    key={index}
+                    variant="outline"
+                    className="text-xs px-1 py-0"
+                  >
+                    #{tag}
+                  </Badge>
+                ))}
+                {tags.length > 3 && (
+                  <span className="text-xs text-muted-foreground">
+                    +{tags.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

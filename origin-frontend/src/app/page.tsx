@@ -7,7 +7,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-white">
       <Header />
       <div className="flex">
-        <Sidebar />
+        <Sidebar isOpen={false} />
         <VideoGrid />
       </div>
     </div>
