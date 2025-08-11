@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
-import { AuthModal } from "../components/auth/AuthModel";
+import { AuthModal } from "../components/auth/AuthModel"; // ✅ fixed import name/path
 import { useAuth } from "@/app/lib/auth";
 import { toast } from "sonner";
 
@@ -55,77 +55,66 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
-      <div className="flex h-16 items-center justify-between px-4">
+      <div className="mx-auto flex h-16 max-w-[1280px] items-center gap-3 px-4">
         {/* Left section - Menu + Logo */}
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={onMenuClick}
-            className={`transition-colors ${
-              isSidebarOpen ? "bg-secondary" : ""
-            }`}
+            className={`transition-colors ${isSidebarOpen ? "bg-secondary" : ""}`}
             aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
             <Menu className="h-5 w-5" />
           </Button>
 
           <div className="flex items-center gap-2">
-            <div className="origin-gradient flex h-8 w-8 items-center justify-center rounded rebel-glow">
+            <div className="origin-gradient flex h-8 w-8 items-center justify-center rounded-md rebel-glow">
               <Flame className="h-5 w-5 text-white" />
             </div>
             <span className="hidden sm:block font-bold text-xl">Origin</span>
-            <Badge
-              variant="destructive"
-              className="hidden md:inline-flex text-xs"
-            >
+            <Badge variant="destructive" className="hidden md:inline-flex text-xs">
               AD-FREE
             </Badge>
           </div>
         </div>
 
-        {/* Center section - Search */}
-        <div className="flex-1 max-w-2xl mx-4">
-          <form onSubmit={handleSearch} className="relative">
-            <div className="flex">
+        {/* Center section - Search (rounded container + Advanced + icon button) */}
+        <div className="relative mx-2 flex-1">
+          <form onSubmit={handleSearch} className="flex items-center">
+            <div className="flex w-full items-center gap-2 rounded-xl border bg-white pl-3 pr-1 shadow-sm focus-within:border-destructive">
               <Input
                 type="text"
                 placeholder="Search videos, creators, rebel content..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-destructive"
+                className="h-10 flex-1 border-0 shadow-none focus-visible:ring-0"
               />
               <Button
-                type="submit"
-                variant="outline"
-                className="rounded-l-none border-l-0 px-6 hover:bg-destructive hover:text-destructive-foreground"
-                aria-label="Search"
+                type="button"
+                variant="ghost"
+                className="text-sm rounded-md px-3"
+                onClick={() => setShowAdvancedSearch((v) => !v)}
+                aria-expanded={showAdvancedSearch}
               >
+                Advanced
+              </Button>
+              <Button type="submit" variant="outline" size="icon" className="h-9 w-9">
                 <Search className="h-4 w-4" />
               </Button>
             </div>
-
-            {/* Advanced search toggle */}
-            <button
-              type="button"
-              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-              className="absolute right-16 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
-              aria-expanded={showAdvancedSearch}
-            >
-              Advanced
-            </button>
           </form>
 
           {/* Advanced search options */}
           {showAdvancedSearch && (
-            <div className="absolute top-full left-0 right-0 mt-1 p-4 bg-white border rounded-lg shadow-lg z-10">
+            <div className="absolute top-12 left-0 right-0 mt-1 p-4 bg-white border rounded-lg shadow-lg z-10">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm mb-1">Duration</label>
                   <select className="w-full p-2 border rounded text-sm">
                     <option value="">Any duration</option>
                     <option value="short">Under 4 minutes</option>
-                    <option value="medium">4-20 minutes</option>
+                    <option value="medium">4–20 minutes</option>
                     <option value="long">Over 20 minutes</option>
                   </select>
                 </div>
@@ -141,14 +130,9 @@ export function Header({
                   </select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="rebel-content"
-                    className="rounded"
-                  />
+                  <input type="checkbox" id="rebel-content" className="rounded" />
                   <label htmlFor="rebel-content" className="text-sm">
-                    <span className="text-destructive font-medium">REBEL</span>{" "}
-                    content only
+                    <span className="text-destructive font-medium">REBEL</span> content only
                   </label>
                 </div>
               </div>
@@ -165,28 +149,17 @@ export function Header({
                 Upload
               </Button>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="relative"
-                aria-label="Notifications"
-              >
+              <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
                 <Bell className="h-5 w-5" />
                 <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-xs" />
               </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="relative h-8 w-8 rounded-full"
-                    aria-label="Account menu"
-                  >
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full" aria-label="Account menu">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.avatar} alt={user.name} />
-                      <AvatarFallback>
-                        {user.name?.charAt(0) || "U"}
-                      </AvatarFallback>
+                      <AvatarFallback>{user.name?.charAt(0) || "U"}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -212,18 +185,10 @@ export function Header({
             </>
           ) : (
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setOpenSignIn(true)}
-              >
+              <Button variant="outline" size="sm" onClick={() => setOpenSignIn(true)}>
                 Sign in
               </Button>
-              <Button
-                size="sm"
-                className="origin-gradient"
-                onClick={() => setOpenSignUp(true)}
-              >
+              <Button size="sm" className="origin-gradient" onClick={() => setOpenSignUp(true)}>
                 Join the Rebellion
               </Button>
             </div>

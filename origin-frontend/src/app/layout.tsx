@@ -1,31 +1,29 @@
-import type { Metadata } from 'next';
-import './style/globals.css';
+import type { Metadata } from "next";
+import "./style/globals.css";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: 'Origin - The Ad-Free Video Platform',
-  description: 'A nostalgic, ad-free video platform inspired by 2010–2015 YouTube, with a rebellious twist. No corporate BS. Pure content.',
-  keywords: ['video platform', 'ad-free', 'content creators', 'origin', 'underground'],
-  authors: [{ name: 'Origin Platform' }],
-  viewport: 'width=device-width, initial-scale=1',
-  robots: 'index, follow',
+  title: "Origin - The Ad-Free Video Platform",
+  description:
+    "A nostalgic, ad-free video platform inspired by 2010–2015 YouTube, with a rebellious twist. No corporate BS. Pure content.",
+  keywords: ["video platform", "ad-free", "content creators", "origin", "underground"],
+  authors: [{ name: "Origin Platform" }],
+  viewport: "width=device-width, initial-scale=1",
+  robots: "index, follow",
   openGraph: {
-    title: 'Origin - The Ad-Free Video Platform',
-    description: 'A nostalgic, ad-free video platform with a rebellious twist.',
-    type: 'website',
-    locale: 'en_US',
+    title: "Origin - The Ad-Free Video Platform",
+    description: "A nostalgic, ad-free video platform with a rebellious twist.",
+    type: "website",
+    locale: "en_US",
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'Origin - The Ad-Free Video Platform',
-    description: 'A nostalgic, ad-free video platform with a rebellious twist.',
+    card: "summary_large_image",
+    title: "Origin - The Ad-Free Video Platform",
+    description: "A nostalgic, ad-free video platform with a rebellious twist.",
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
@@ -36,7 +34,7 @@ export default function RootLayout({
         <link rel="manifest" href="/site.webmanifest" />
       </head>
       <body className="antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
