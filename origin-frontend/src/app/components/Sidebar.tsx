@@ -388,7 +388,7 @@ export function Sidebar({
 
               <div className="mt-4 px-3">
                 <p className="text-xs text-muted-foreground">
-                  © 2025 Origin Platform
+                  © 2024 Origin Platform
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Ad-free • Creator-focused • Rebellion-powered
