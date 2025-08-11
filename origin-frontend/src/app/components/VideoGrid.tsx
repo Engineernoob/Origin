@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { VideoCard } from "./VideoCard";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Skeleton } from "./ui/skeleton";
-import { AlertCircle, Flame, Shield, Zap } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { VideoCard } from './VideoCard';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Skeleton } from './ui/skeleton';
+import { AlertCircle, Flame, Shield, Zap } from 'lucide-react';
 
 interface VideoGridProps {
   searchQuery?: string;
@@ -32,21 +32,13 @@ interface MockVideo {
   tags?: string[];
 }
 
-export function VideoGrid({
-  searchQuery,
-  section = "home",
-  onVideoClick,
-}: VideoGridProps) {
+export function VideoGrid({ searchQuery, section = 'home', onVideoClick }: VideoGridProps) {
   const [videos, setVideos] = useState<MockVideo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
   // Mock video data generator
-  const generateMockVideos = (
-    count: number,
-    isRebelContent = false,
-    sectionId = section
-  ): MockVideo[] => {
+  const generateMockVideos = (count: number, isRebelContent = false, sectionId = section): MockVideo[] => {
     const mockVideos: MockVideo[] = [];
     const baseTimestamp = Date.now();
     const rebelTitles = [
@@ -57,7 +49,7 @@ export function VideoGrid({
       "Underground Truth: What Really Happened",
       "REBEL EXCLUSIVE: Inside the Censorship Machine",
       "Why This Video is BANNED on Other Platforms",
-      "The Corporate Conspiracy Against Free Speech",
+      "The Corporate Conspiracy Against Free Speech"
     ];
 
     const normalTitles = [
@@ -68,7 +60,7 @@ export function VideoGrid({
       "Cooking the Perfect Pasta: Italian Secrets",
       "Travel Vlog: Hidden Gems in Tokyo",
       "Tech Review: Is This Worth Your Money?",
-      "Fitness Journey: 30 Days of Change",
+      "Fitness Journey: 30 Days of Change"
     ];
 
     const creators = [
@@ -79,29 +71,19 @@ export function VideoGrid({
       { name: "TechReviewer", isVerified: true },
       { name: "CreativeGuru", isVerified: false },
       { name: "AdventureBlogger", isVerified: true },
-      { name: "LifestyleTips", isVerified: false },
+      { name: "LifestyleTips", isVerified: false }
     ];
 
-    const tags = isRebelContent
-      ? [
-          ["banned", "truth", "censorship"],
-          ["corporate", "media", "exposed"],
-          ["freedom", "speech", "rebel"],
-        ]
-      : [
-          ["diy", "creative", "tutorial"],
-          ["tech", "review", "gadgets"],
-          ["travel", "adventure", "vlog"],
-        ];
+    const tags = isRebelContent 
+      ? [["banned", "truth", "censorship"], ["corporate", "media", "exposed"], ["freedom", "speech", "rebel"]]
+      : [["diy", "creative", "tutorial"], ["tech", "review", "gadgets"], ["travel", "adventure", "vlog"]];
 
     for (let i = 0; i < count; i++) {
       const creator = creators[Math.floor(Math.random() * creators.length)];
       const titleArray = isRebelContent ? rebelTitles : normalTitles;
       const tagArray = tags[Math.floor(Math.random() * tags.length)];
-      const uniqueId = `${sectionId}-${
-        isRebelContent ? "rebel" : "normal"
-      }-${baseTimestamp}-${i}-${Math.random().toString(36).substr(2, 9)}`;
-
+      const uniqueId = `${sectionId}-${isRebelContent ? 'rebel' : 'normal'}-${baseTimestamp}-${i}-${Math.random().toString(36).substr(2, 9)}`;
+      
       mockVideos.push({
         id: uniqueId,
         title: titleArray[Math.floor(Math.random() * titleArray.length)],
@@ -109,20 +91,16 @@ export function VideoGrid({
         creator: {
           name: creator.name,
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.name}`,
-          isVerified: creator.isVerified,
+          isVerified: creator.isVerified
         },
         views: `${Math.floor(Math.random() * 999)}K`,
         uploadTime: `${Math.floor(Math.random() * 7) + 1} days ago`,
-        duration: `${Math.floor(Math.random() * 20) + 1}:${Math.floor(
-          Math.random() * 60
-        )
-          .toString()
-          .padStart(2, "0")}`,
+        duration: `${Math.floor(Math.random() * 20) + 1}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
         isRebelContent: isRebelContent,
         isBannedElsewhere: isRebelContent && Math.random() > 0.5,
         likes: Math.floor(Math.random() * 10000),
         comments: Math.floor(Math.random() * 500),
-        tags: tagArray,
+        tags: tagArray
       });
     }
 
@@ -132,42 +110,37 @@ export function VideoGrid({
   // Load videos based on section
   useEffect(() => {
     setIsLoading(true);
-
+    
     // Simulate API call delay
     setTimeout(() => {
       let newVideos: MockVideo[] = [];
-
+      
       switch (section) {
-        case "rebel-trending":
-        case "banned-elsewhere":
-        case "underground":
-        case "anti-corporate":
+        case 'rebel-trending':
+        case 'banned-elsewhere':
+        case 'underground':
+        case 'anti-corporate':
           newVideos = generateMockVideos(12, true, section);
           break;
-        case "trending":
+        case 'trending':
           newVideos = [
             ...generateMockVideos(4, true, section),
-            ...generateMockVideos(8, false, section),
+            ...generateMockVideos(8, false, section)
           ];
           break;
         default:
           newVideos = [
             ...generateMockVideos(3, true, section),
-            ...generateMockVideos(15, false, section),
+            ...generateMockVideos(15, false, section)
           ];
       }
 
       // Filter by search query if provided
       if (searchQuery) {
-        newVideos = newVideos.filter(
-          (video) =>
-            video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            video.creator.name
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase()) ||
-            video.tags?.some((tag) =>
-              tag.toLowerCase().includes(searchQuery.toLowerCase())
-            )
+        newVideos = newVideos.filter(video =>
+          video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          video.creator.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          video.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
         );
       }
 
@@ -178,66 +151,26 @@ export function VideoGrid({
 
   const loadMoreVideos = () => {
     setLoadingMore(true);
-
+    
     setTimeout(() => {
-      const isRebelSection = [
-        "rebel-trending",
-        "banned-elsewhere",
-        "underground",
-        "anti-corporate",
-      ].includes(section);
-      const moreVideos = generateMockVideos(
-        8,
-        isRebelSection,
-        `${section}-more`
-      );
-      setVideos((prev) => [...prev, ...moreVideos]);
+      const isRebelSection = ['rebel-trending', 'banned-elsewhere', 'underground', 'anti-corporate'].includes(section);
+      const moreVideos = generateMockVideos(8, isRebelSection, `${section}-more`);
+      setVideos(prev => [...prev, ...moreVideos]);
       setLoadingMore(false);
     }, 1000);
   };
 
   const getSectionHeader = () => {
-    const sectionConfig: Record<
-      string,
-      {
-        title: string;
-        subtitle: string;
-        icon?: React.ElementType;
-        isRebel?: boolean;
-      }
-    > = {
-      home: { title: "Home", subtitle: "Videos curated for rebels like you" },
-      trending: {
-        title: "Trending",
-        subtitle: "What's hot on Origin right now",
-      },
-      "rebel-trending": {
-        title: "Rebel Trending",
-        subtitle: "The most rebellious content of the moment",
-        icon: Flame,
-        isRebel: true,
-      },
-      "banned-elsewhere": {
-        title: "Banned Elsewhere",
-        subtitle: "Content censored by corporate platforms",
-        icon: Shield,
-        isRebel: true,
-      },
-      underground: {
-        title: "Underground",
-        subtitle: "Hidden gems from independent creators",
-        icon: Zap,
-        isRebel: true,
-      },
-      "anti-corporate": {
-        title: "Anti-Corporate",
-        subtitle: "Fighting back against the system",
-        icon: AlertCircle,
-        isRebel: true,
-      },
+    const sectionConfig: Record<string, { title: string; subtitle: string; icon?: React.ElementType; isRebel?: boolean }> = {
+      'home': { title: 'Home', subtitle: 'Videos curated for rebels like you' },
+      'trending': { title: 'Trending', subtitle: 'What\'s hot on Origin right now' },
+      'rebel-trending': { title: 'Rebel Trending', subtitle: 'The most rebellious content of the moment', icon: Flame, isRebel: true },
+      'banned-elsewhere': { title: 'Banned Elsewhere', subtitle: 'Content censored by corporate platforms', icon: Shield, isRebel: true },
+      'underground': { title: 'Underground', subtitle: 'Hidden gems from independent creators', icon: Zap, isRebel: true },
+      'anti-corporate': { title: 'Anti-Corporate', subtitle: 'Fighting back against the system', icon: AlertCircle, isRebel: true }
     };
 
-    return sectionConfig[section] || sectionConfig["home"];
+    return sectionConfig[section] || sectionConfig['home'];
   };
 
   const sectionHeader = getSectionHeader();
@@ -272,17 +205,9 @@ export function VideoGrid({
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           {Icon && (
-            <Icon
-              className={`h-6 w-6 ${
-                sectionHeader.isRebel ? "text-destructive" : ""
-              }`}
-            />
+            <Icon className={`h-6 w-6 ${sectionHeader.isRebel ? 'text-destructive' : ''}`} />
           )}
-          <h1
-            className={`text-2xl font-bold ${
-              sectionHeader.isRebel ? "text-destructive" : ""
-            }`}
-          >
+          <h1 className={`text-2xl font-bold ${sectionHeader.isRebel ? 'text-destructive' : ''}`}>
             {sectionHeader.title}
           </h1>
           {sectionHeader.isRebel && (
@@ -298,12 +223,9 @@ export function VideoGrid({
       {searchQuery && (
         <div className="mb-4 p-4 bg-muted/50 rounded-lg">
           <p>
-            Showing results for: <strong>"{searchQuery}"</strong>
+            Showing results for: <strong>"{searchQuery}"</strong> 
             {videos.length > 0 && (
-              <span className="text-muted-foreground">
-                {" "}
-                ({videos.length} videos found)
-              </span>
+              <span className="text-muted-foreground"> ({videos.length} videos found)</span>
             )}
           </p>
         </div>
@@ -315,9 +237,10 @@ export function VideoGrid({
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No videos found</h3>
           <p className="text-muted-foreground">
-            {searchQuery
+            {searchQuery 
               ? `No results for "${searchQuery}". Try different keywords.`
-              : "No videos available in this section yet."}
+              : 'No videos available in this section yet.'
+            }
           </p>
         </div>
       )}
@@ -331,13 +254,9 @@ export function VideoGrid({
                 key={video.id}
                 {...video}
                 onClick={() => onVideoClick?.(video.id)}
-                onCreatorClick={() =>
-                  console.log("Navigate to creator:", video.creator.name)
-                }
-                onAddToPlaylist={() =>
-                  console.log("Add to playlist:", video.id)
-                }
-                onShare={() => console.log("Share video:", video.id)}
+                onCreatorClick={() => console.log('Navigate to creator:', video.creator.name)}
+                onAddToPlaylist={() => console.log('Add to playlist:', video.id)}
+                onShare={() => console.log('Share video:', video.id)}
               />
             ))}
           </div>
@@ -350,7 +269,7 @@ export function VideoGrid({
               variant="outline"
               size="lg"
             >
-              {loadingMore ? "Loading more videos..." : "Load More Videos"}
+              {loadingMore ? 'Loading more videos...' : 'Load More Videos'}
             </Button>
           </div>
         </>
