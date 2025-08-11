@@ -6,7 +6,7 @@ import { VideoGrid } from "../app/components/VideoGrid";
 
 export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const menuBtnRef = useRef<HTMLButtonElement>(null!); // Non-null assertion to resolve type conflict
+  const menuBtnRef = useRef<HTMLButtonElement>(null); // ✅ no union
 
   return (
     <div className="min-h-dvh bg-white">
