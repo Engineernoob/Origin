@@ -13,10 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Badge } from "./ui/badge";
+import { AuthModal } from "../components/auth/AuthModel";
+import { useAuth } from "@/app/lib/auth";
+import { toast } from "sonner";
 
 interface HeaderProps {
   onMenuClick?: () => void;
   onSearch?: (query: string) => void;
+  /** Optional legacy props; will be overridden by auth context if present */
   isAuthenticated?: boolean;
   isSidebarOpen?: boolean;
   user?: {
@@ -31,10 +35,18 @@ export function Header({
   onSearch,
   isAuthenticated = false,
   isSidebarOpen = false,
-  user,
+  user: userProp,
 }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+
+  // Auth wiring
+  const { user: userCtx, setUser, signOut } = useAuth();
+  const authed = !!userCtx || isAuthenticated;
+  const user = userCtx ?? userProp;
+
+  const [openSignIn, setOpenSignIn] = useState(false);
+  const [openSignUp, setOpenSignUp] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +99,7 @@ export function Header({
                 type="submit"
                 variant="outline"
                 className="rounded-l-none border-l-0 px-6 hover:bg-destructive hover:text-destructive-foreground"
+                aria-label="Search"
               >
                 <Search className="h-4 w-4" />
               </Button>
@@ -97,6 +110,7 @@ export function Header({
               type="button"
               onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
               className="absolute right-16 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+              aria-expanded={showAdvancedSearch}
             >
               Advanced
             </button>
@@ -144,16 +158,21 @@ export function Header({
 
         {/* Right section - User actions */}
         <div className="flex items-center gap-2">
-          {isAuthenticated ? (
+          {authed && user ? (
             <>
               <Button variant="ghost" size="sm" className="hidden sm:flex">
                 <Upload className="h-4 w-4 mr-2" />
                 Upload
               </Button>
 
-              <Button variant="ghost" size="sm" className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative"
+                aria-label="Notifications"
+              >
                 <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-xs"></span>
+                <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-xs" />
               </Button>
 
               <DropdownMenu>
@@ -161,11 +180,12 @@ export function Header({
                   <Button
                     variant="ghost"
                     className="relative h-8 w-8 rounded-full"
+                    aria-label="Account menu"
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user?.avatar} alt={user?.name} />
+                      <AvatarImage src={user.avatar} alt={user.name} />
                       <AvatarFallback>
-                        {user?.name?.charAt(0) || "U"}
+                        {user.name?.charAt(0) || "U"}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -178,7 +198,13 @@ export function Header({
                   <DropdownMenuItem>Settings</DropdownMenuItem>
                   <DropdownMenuItem>Help & feedback</DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => {
+                      signOut();
+                      toast.success("Signed out");
+                    }}
+                  >
                     Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -186,16 +212,44 @@ export function Header({
             </>
           ) : (
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOpenSignIn(true)}
+              >
                 Sign in
               </Button>
-              <Button size="sm" className="origin-gradient">
+              <Button
+                size="sm"
+                className="origin-gradient"
+                onClick={() => setOpenSignUp(true)}
+              >
                 Join the Rebellion
               </Button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Auth Modals */}
+      <AuthModal
+        isOpen={openSignIn}
+        onClose={() => setOpenSignIn(false)}
+        defaultMode="signin"
+        onAuthSuccess={(u) => {
+          setUser(u);
+          toast.success("Signed in");
+        }}
+      />
+      <AuthModal
+        isOpen={openSignUp}
+        onClose={() => setOpenSignUp(false)}
+        defaultMode="signup"
+        onAuthSuccess={(u) => {
+          setUser(u);
+          toast.success("Welcome to the rebellion");
+        }}
+      />
     </header>
   );
 }
