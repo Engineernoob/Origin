@@ -8,7 +8,6 @@ export const metadata: Metadata = {
     "A nostalgic, ad-free video platform inspired by 2010–2015 YouTube, with a rebellious twist. No corporate BS. Pure content.",
   keywords: ["video platform", "ad-free", "content creators", "origin", "underground"],
   authors: [{ name: "Origin Platform" }],
-  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
   openGraph: {
     title: "Origin - The Ad-Free Video Platform",

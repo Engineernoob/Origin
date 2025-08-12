@@ -3,18 +3,19 @@ import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 import { VideoGrid } from "../components/VideoGrid";
 
-export default function SearchPage({
+export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  // NOTE: in Next 15+ this is a Promise
+  searchParams: Promise<{ q?: string }>;
 }) {
-  const q = (searchParams?.q ?? "").toString();
+  const params = await searchParams;
+  const q = (params?.q ?? "").toString();
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <div className="flex">
-        {/* Sidebar can stay open or be controlled by state in a fancier shell later */}
         <Sidebar isOpen />
         <main className="flex-1">
           <VideoGrid searchQuery={q} section="search" />
