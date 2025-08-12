@@ -5,6 +5,7 @@ import { Video } from './videos/videos.entity';
 import { VideosModule } from './videos/videos.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { YoutubeModule } from './youtube/youtube.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AppService } from './app.service';
       }),
     }),
     VideosModule,
+    YoutubeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
