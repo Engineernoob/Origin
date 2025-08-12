@@ -23,6 +23,8 @@ interface AuthModalProps {
   defaultMode?: "signin" | "signup";
 }
 
+const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+
 export function AuthModal({
   isOpen,
   onClose,
@@ -39,6 +41,7 @@ export function AuthModal({
   const [joinRebellion, setJoinRebellion] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // TEMP mock submit (kept)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -73,6 +76,11 @@ export function AuthModal({
     setUsername("");
   };
 
+  const handleGoogle = () => {
+    // Kick off OAuth on the backend
+    window.location.href = `${BACKEND}/auth/google`;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       {/* Smaller, tighter modal */}
@@ -81,7 +89,7 @@ export function AuthModal({
           <div className="mx-auto mb-1 flex h-9 w-9 items-center justify-center rounded-md origin-gradient rebel-glow">
             <Flame className="h-5 w-5 text-white" />
           </div>
-          <DialogTitle className="text-lg"> 
+          <DialogTitle className="text-lg">
             {mode === "signin" ? "Welcome back, Rebel" : "Join the Rebellion"}
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -91,10 +99,58 @@ export function AuthModal({
           </DialogDescription>
         </DialogHeader>
 
+        {/* OAuth first */}
+        <div className="space-y-2">
+          <Button
+            type="button"
+            onClick={handleGoogle}
+            className="h-9 w-full justify-center gap-2 rounded-lg bg-[#e11d48] text-white shadow-[0_8px_20px_-6px_rgba(225,29,72,0.5)] hover:bg-[#be123c]"
+          >
+            {/* Simple Google “G” mark (inline SVG) */}
+            <svg
+              aria-hidden="true"
+              focusable="false"
+              width="16"
+              height="16"
+              viewBox="0 0 18 18"
+            >
+              <path
+                fill="#fff"
+                d="M17.64 9.2c0-.63-.06-1.25-.18-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.86 2.7-6.62z"
+              />
+              <path
+                fill="#fff"
+                fillOpacity=".7"
+                d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.35-1.58-5.06-3.7H.94v2.32A9 9 0 0 0 9 18z"
+              />
+              <path
+                fill="#fff"
+                fillOpacity=".7"
+                d="M3.94 10.72A5.4 5.4 0 0 1 3.64 9c0-.6.1-1.18.3-1.72V4.96H.94A9 9 0 0 0 0 9c0 1.45.35 2.82.94 4.04l2.99-2.32z"
+              />
+              <path
+                fill="#fff"
+                fillOpacity=".7"
+                d="M9 3.56c1.32 0 2.5.46 3.42 1.36l2.56-2.56A9 9 0 0 0 9 0 9 9 0 0 0 .94 4.96l3 2.32C4.65 5.16 6.65 3.56 9 3.56z"
+              />
+            </svg>
+            Continue with Google
+          </Button>
+
+          <div className="flex items-center gap-2 py-2">
+            <Separator className="flex-1" />
+            <span className="text-[11px] text-muted-foreground">or</span>
+            <Separator className="flex-1" />
+          </div>
+        </div>
+
+        {/* Email form */}
         <form onSubmit={handleSubmit} className="space-y-3">
           {mode === "signup" && (
             <div className="space-y-1.5">
-              <Label htmlFor="username" className="text-xs">Username</Label>
+              <Label htmlFor="username" className="text-xs">
+                Username
+              </Label>
               <div className="relative">
                 <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -111,7 +167,9 @@ export function AuthModal({
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs">Email</Label>
+            <Label htmlFor="email" className="text-xs">
+              Email
+            </Label>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -127,7 +185,9 @@ export function AuthModal({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-xs">Password</Label>
+            <Label htmlFor="password" className="text-xs">
+              Password
+            </Label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -145,14 +205,20 @@ export function AuthModal({
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
               </button>
             </div>
           </div>
 
           {mode === "signup" && (
             <div className="space-y-1.5">
-              <Label htmlFor="confirmPassword" className="text-xs">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="text-xs">
+                Confirm Password
+              </Label>
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -178,9 +244,13 @@ export function AuthModal({
                 />
                 <Label htmlFor="terms" className="text-xs leading-5">
                   I agree to the{" "}
-                  <button type="button" className="text-destructive underline">Terms of Service</button>{" "}
+                  <button type="button" className="text-destructive underline">
+                    Terms of Service
+                  </button>{" "}
                   and{" "}
-                  <button type="button" className="text-destructive underline">Privacy Policy</button>
+                  <button type="button" className="text-destructive underline">
+                    Privacy Policy
+                  </button>
                 </Label>
               </div>
 
@@ -190,9 +260,17 @@ export function AuthModal({
                   checked={joinRebellion}
                   onCheckedChange={(c) => setJoinRebellion(c as boolean)}
                 />
-                <Label htmlFor="rebellion" className="flex items-center gap-2 text-xs">
+                <Label
+                  htmlFor="rebellion"
+                  className="flex items-center gap-2 text-xs"
+                >
                   <span>Join as a Creator and fight the system</span>
-                  <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">REBEL</Badge>
+                  <Badge
+                    variant="destructive"
+                    className="px-1.5 py-0 text-[10px]"
+                  >
+                    REBEL
+                  </Badge>
                 </Label>
               </div>
             </div>
@@ -200,7 +278,7 @@ export function AuthModal({
 
           <Button
             type="submit"
-            className="w-full origin-gradient h-9 text-sm"
+            className="h-9 w-full origin-gradient text-sm"
             disabled={isLoading || (mode === "signup" && !agreeToTerms)}
           >
             {isLoading
@@ -214,9 +292,15 @@ export function AuthModal({
 
           <div className="text-center">
             <p className="text-xs text-muted-foreground">
-              {mode === "signin" ? "Don't have an account?" : "Already have an account?"}
+              {mode === "signin"
+                ? "Don't have an account?"
+                : "Already have an account?"}
             </p>
-            <Button variant="link" onClick={toggleMode} className="h-auto p-0 text-sm">
+            <Button
+              variant="link"
+              onClick={toggleMode}
+              className="h-auto p-0 text-sm"
+            >
               {mode === "signin" ? "Join the Rebellion" : "Sign In"}
             </Button>
           </div>

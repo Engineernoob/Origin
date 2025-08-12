@@ -18,9 +18,9 @@ type ApiVideo = {
   id: string;
   title: string;
   thumbnailUrl: string;
-  duration?: string;
-  views?: number;
-  publishedAt?: string;
+  duration: string;
+  views: number;
+  publishedAt: string;
   channel: { name: string; avatarUrl?: string; verified?: boolean };
   tags?: string[];
   isRebelContent?: boolean;
@@ -38,6 +38,10 @@ type UiVideo = {
   tags?: string[];
 };
 
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ||
+  "http://localhost:3000";
+
 export function VideoGrid({
   searchQuery,
   section = "home",
@@ -49,6 +53,7 @@ export function VideoGrid({
   const [isLoading, setIsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   // Map API → UI
@@ -71,34 +76,24 @@ export function VideoGrid({
     tags: v.tags ?? [],
   });
 
-  const isSearchMode = !!searchQuery || section === "search";
-
-  // Build API path: YouTube proxy for search, internal feed otherwise
-  const API_PATH = useMemo(() => {
+  // Build absolute API URL to backend
+  const API_URL = useMemo(() => {
     const params = new URLSearchParams();
-    if (isSearchMode && searchQuery) params.set("q", searchQuery);
-
-    // For your internal feed
-    if (!isSearchMode && section && section !== "home") {
-      params.set("section", section);
-    }
-
-    // Basic pagination; backend can translate this to pageToken if needed
+    if (searchQuery) params.set("q", searchQuery);
+    if (section && section !== "home") params.set("section", section);
     params.set("page", String(page));
     params.set("limit", "24");
+    return `${API_BASE}/videos?${params.toString()}`;
+  }, [searchQuery, section, page]);
 
-    return isSearchMode
-      ? `/api/youtube/search?${params.toString()}`
-      : `/api/videos?${params.toString()}`;
-  }, [isSearchMode, searchQuery, section, page]);
-
-  // Reset when section/search changes
+  // Reset on section/search change
   useEffect(() => {
     setIsLoading(true);
+    setError(null);
     setPage(1);
   }, [section, searchQuery]);
 
-  // Fetch when API path / page changes
+  // Fetch on URL/page change
   useEffect(() => {
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -106,17 +101,30 @@ export function VideoGrid({
 
     (async () => {
       try {
-        const res = await fetch(API_PATH, {
+        const res = await fetch(API_URL, {
           cache: "no-store",
           signal: controller.signal,
         });
-        if (!res.ok) throw new Error(`Failed: ${res.status}`);
+
+        if (!res.ok) {
+          const text = await safeText(res);
+          setError(
+            `Failed to load videos (${res.status} ${res.statusText})${
+              text ? ` – ${text}` : ""
+            }`
+          );
+          if (page === 1) setVideos([]);
+          return;
+        }
+
         const json = (await res.json()) as ApiVideo[];
         const mapped = json.map(mapVideo);
         setVideos((prev) => (page === 1 ? mapped : [...prev, ...mapped]));
+        setError(null);
       } catch (e: any) {
         if (e?.name !== "AbortError") {
           console.error(e);
+          setError("Network error while loading videos.");
           if (page === 1) setVideos([]);
         }
       } finally {
@@ -126,7 +134,7 @@ export function VideoGrid({
     })();
 
     return () => controller.abort();
-  }, [API_PATH, page]);
+  }, [API_URL, page]);
 
   const loadMore = () => {
     setLoadingMore(true);
@@ -171,9 +179,7 @@ export function VideoGrid({
     search: { title: "Search", subtitle: "Results that match your query" },
   };
 
-  const header = isSearchMode
-    ? sectionConfig.search
-    : sectionConfig[section] ?? sectionConfig.home;
+  const header = sectionConfig[section] ?? sectionConfig.home;
   const Icon = header.icon;
 
   if (isLoading && page === 1) {
@@ -225,6 +231,17 @@ export function VideoGrid({
         <p className="text-muted-foreground">{header.subtitle}</p>
       </div>
 
+      {/* Error banner */}
+      {error && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          <AlertCircle className="mt-0.5 h-4 w-4" />
+          <div>
+            <p className="font-medium">Couldn’t load videos</p>
+            <p className="opacity-80">{error}</p>
+          </div>
+        </div>
+      )}
+
       {/* Search info */}
       {searchQuery && (
         <div className="mb-4 rounded-lg bg-muted/50 p-4">
@@ -241,7 +258,7 @@ export function VideoGrid({
       )}
 
       {/* No results */}
-      {videos.length === 0 && !isLoading ? (
+      {videos.length === 0 && !isLoading && !error ? (
         <div className="py-12 text-center">
           <AlertCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
           <h3 className="mb-2 text-lg font-semibold">No videos found</h3>
@@ -296,6 +313,14 @@ export function VideoGrid({
 
 /* ---------- helpers ---------- */
 
+async function safeText(res: Response) {
+  try {
+    return await res.text();
+  } catch {
+    return "";
+  }
+}
+
 function formatViews(n: number | undefined) {
   if (!n && n !== 0) return "—";
   if (n < 1_000) return String(n);
@@ -305,7 +330,7 @@ function formatViews(n: number | undefined) {
   return `${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
 }
 
-function timeAgo(iso?: string) {
+function timeAgo(iso: string | undefined) {
   if (!iso) return "unknown";
   const then = new Date(iso).getTime();
   const diff = Math.max(0, Date.now() - then);
