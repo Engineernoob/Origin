@@ -18,9 +18,9 @@ type ApiVideo = {
   id: string;
   title: string;
   thumbnailUrl: string;
-  duration: string;
-  views: number;
-  publishedAt: string;
+  duration?: string;
+  views?: number;
+  publishedAt?: string;
   channel: { name: string; avatarUrl?: string; verified?: boolean };
   tags?: string[];
   isRebelContent?: boolean;
@@ -71,22 +71,34 @@ export function VideoGrid({
     tags: v.tags ?? [],
   });
 
+  const isSearchMode = !!searchQuery || section === "search";
+
+  // Build API path: YouTube proxy for search, internal feed otherwise
   const API_PATH = useMemo(() => {
     const params = new URLSearchParams();
-    if (searchQuery) params.set("q", searchQuery);
-    if (section && section !== "home") params.set("section", section);
+    if (isSearchMode && searchQuery) params.set("q", searchQuery);
+
+    // For your internal feed
+    if (!isSearchMode && section && section !== "home") {
+      params.set("section", section);
+    }
+
+    // Basic pagination; backend can translate this to pageToken if needed
     params.set("page", String(page));
     params.set("limit", "24");
-    return `/api/videos?${params.toString()}`;
-  }, [searchQuery, section, page]);
 
-  // Reset on section/search change
+    return isSearchMode
+      ? `/api/youtube/search?${params.toString()}`
+      : `/api/videos?${params.toString()}`;
+  }, [isSearchMode, searchQuery, section, page]);
+
+  // Reset when section/search changes
   useEffect(() => {
     setIsLoading(true);
     setPage(1);
   }, [section, searchQuery]);
 
-  // Fetch on path/page change
+  // Fetch when API path / page changes
   useEffect(() => {
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -159,7 +171,9 @@ export function VideoGrid({
     search: { title: "Search", subtitle: "Results that match your query" },
   };
 
-  const header = sectionConfig[section] ?? sectionConfig.home;
+  const header = isSearchMode
+    ? sectionConfig.search
+    : sectionConfig[section] ?? sectionConfig.home;
   const Icon = header.icon;
 
   if (isLoading && page === 1) {
@@ -253,7 +267,7 @@ export function VideoGrid({
                 duration={v.duration}
                 views={v.views}
                 uploadTime={v.uploadTime}
-                isRebelContent={!!v.isRebelContent} // ← matches VideoCard prop
+                isRebelContent={!!v.isRebelContent}
                 onClick={() =>
                   onVideoClick
                     ? onVideoClick(v.id)
@@ -291,7 +305,7 @@ function formatViews(n: number | undefined) {
   return `${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
 }
 
-function timeAgo(iso: string | undefined) {
+function timeAgo(iso?: string) {
   if (!iso) return "unknown";
   const then = new Date(iso).getTime();
   const diff = Math.max(0, Date.now() - then);
