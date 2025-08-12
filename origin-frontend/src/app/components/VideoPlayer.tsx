@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Play,
   Pause,
@@ -66,6 +67,7 @@ export function VideoPlayer({
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const video = videoRef.current;
@@ -144,6 +146,18 @@ export function VideoPlayer({
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+      {/* Back to Home Button */}
+      <div className="p-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push("/")}
+          className="flex items-center gap-2"
+        >
+          ← Back to Home
+        </Button>
+      </div>
+
       {/* Video Player */}
       <div className="relative aspect-video bg-black group">
         <video
