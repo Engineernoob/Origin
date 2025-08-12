@@ -1,4 +1,3 @@
-// src/videos/video.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -8,72 +7,63 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-type ExternalRef = {
-  provider: 'youtube' | 'vimeo' | 'origin' | 'other';
-  id: string; // e.g. YouTube videoId
-  url?: string; // canonical link to the source
-  meta?: Record<string, any>; // any extra fields you want to keep
-};
-
 @Entity('videos')
 export class Video {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  // Structured reference to any external platform (jsonb)
-  // NOTE: you can't use a simple unique index on jsonb; see note below.
-  @Column({ type: 'jsonb', nullable: true })
-  externalRef!: ExternalRef | null;
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  externalId!: string | null;
 
   @Index()
-  @Column()
+  @Column({ type: 'varchar', length: 512 })
   title!: string;
 
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255 })
   creatorName!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 1024, nullable: true })
   creatorAvatar!: string | null;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   creatorVerified!: boolean;
 
-  @Column({ default: '' })
+  @Column({ type: 'varchar', length: 64, default: '' })
   creatorSubscribers!: string;
 
-  // Path or URL to playable asset (MP4/HLS)
-  @Column()
+  // path or URL to playable asset (MP4/HLS)
+  @Column({ type: 'varchar', length: 2048 })
   videoUrl!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 2048, nullable: true })
   thumbnailUrl!: string | null;
 
-  @Column({ default: 0 })
+  @Column({ type: 'integer', default: 0 })
   likes!: number;
 
-  @Column({ default: 0 })
+  @Column({ type: 'integer', default: 0 })
   dislikes!: number;
 
-  @Column({ default: 0 })
+  @Column({ type: 'integer', default: 0 })
   views!: number;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   isRebelContent!: boolean;
 
-  // fine for small lists; switch to jsonb if you need richer tag data
-  @Column('simple-array', { nullable: true })
-  tags!: string[] | null;
+  // Stores as comma-separated string in Postgres
+  @Column({ type: 'text', nullable: true })
+  tags!: string[] | null; // if you prefer, switch to `@Column('simple-array', { nullable: true })`
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt!: Date;
 
-  // for “uploaded at” style display
   @Column({ type: 'timestamptz', default: () => 'now()' })
   uploadedAt!: Date;
 }
