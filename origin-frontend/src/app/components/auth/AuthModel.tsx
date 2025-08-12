@@ -78,7 +78,7 @@ export function AuthModal({
 
   const handleGoogle = () => {
     // Kick off OAuth on the backend
-    window.location.href = `${BACKEND}/auth/google`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000'}/auth/google`;
   };
 
   return (
