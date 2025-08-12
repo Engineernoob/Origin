@@ -1,11 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { VideoCard } from './VideoCard';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Skeleton } from './ui/skeleton';
-import { AlertCircle, Flame, Shield, Zap } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { VideoCard } from "./VideoCard";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { Skeleton } from "./ui/skeleton";
+import { AlertCircle, Flame, Shield, Zap } from "lucide-react";
 
 interface VideoGridProps {
   searchQuery?: string;
@@ -13,177 +14,162 @@ interface VideoGridProps {
   onVideoClick?: (videoId: string) => void;
 }
 
-interface MockVideo {
+type ApiVideo = {
+  id: string;
+  title: string;
+  thumbnailUrl: string;
+  duration: string;
+  views: number;
+  publishedAt: string;
+  channel: { name: string; avatarUrl?: string; verified?: boolean };
+  tags?: string[];
+  isRebelContent?: boolean; // if your API returns this; otherwise we’ll compute a fallback
+};
+
+type UiVideo = {
   id: string;
   title: string;
   thumbnail: string;
-  creator: {
-    name: string;
-    avatar?: string;
-    isVerified?: boolean;
-  };
+  creator: { name: string; avatar?: string; isVerified?: boolean };
   views: string;
   uploadTime: string;
   duration: string;
   isRebelContent?: boolean;
-  isBannedElsewhere?: boolean;
-  likes?: number;
-  comments?: number;
   tags?: string[];
-}
+};
 
-export function VideoGrid({ searchQuery, section = 'home', onVideoClick }: VideoGridProps) {
-  const [videos, setVideos] = useState<MockVideo[]>([]);
+export function VideoGrid({
+  searchQuery,
+  section = "home",
+  onVideoClick,
+}: VideoGridProps) {
+  const router = useRouter();
+
+  const [videos, setVideos] = useState<UiVideo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // Mock video data generator
-  const generateMockVideos = (count: number, isRebelContent = false, sectionId = section): MockVideo[] => {
-    const mockVideos: MockVideo[] = [];
-    const baseTimestamp = Date.now();
-    const rebelTitles = [
-      "The TRUTH About Corporate Censorship They Don't Want You to Know",
-      "BANNED EVERYWHERE: Why Big Tech Fears This Message",
-      "Corporate Media EXPOSED: The Real Agenda",
-      "Fighting Back Against Digital Tyranny",
-      "Underground Truth: What Really Happened",
-      "REBEL EXCLUSIVE: Inside the Censorship Machine",
-      "Why This Video is BANNED on Other Platforms",
-      "The Corporate Conspiracy Against Free Speech"
-    ];
+  // Map API -> UI
+  const mapVideo = (v: ApiVideo): UiVideo => ({
+    id: v.id,
+    title: v.title,
+    thumbnail: v.thumbnailUrl,
+    creator: {
+      name: v.channel?.name ?? "Unknown",
+      avatar: v.channel?.avatarUrl,
+      isVerified: !!v.channel?.verified,
+    },
+    views: formatViews(v.views),
+    uploadTime: timeAgo(v.publishedAt),
+    duration: v.duration ?? "0:00",
+    isRebelContent:
+      typeof v.isRebelContent === "boolean"
+        ? v.isRebelContent
+        : inferRebelFromTags(v.tags),
+    tags: v.tags ?? [],
+  });
 
-    const normalTitles = [
-      "Amazing DIY Project That Will Blow Your Mind",
-      "10 Life Hacks That Actually Work",
-      "Incredible Nature Documentary: Wildlife in 4K",
-      "Learning Guitar: Complete Beginner's Guide",
-      "Cooking the Perfect Pasta: Italian Secrets",
-      "Travel Vlog: Hidden Gems in Tokyo",
-      "Tech Review: Is This Worth Your Money?",
-      "Fitness Journey: 30 Days of Change"
-    ];
+  const API_PATH = useMemo(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set("q", searchQuery);
+    if (section && section !== "home") params.set("section", section);
+    params.set("page", String(page));
+    params.set("limit", "24");
+    return `/api/videos?${params.toString()}`;
+  }, [searchQuery, section, page]);
 
-    const creators = [
-      { name: "TruthSeeker", isVerified: true },
-      { name: "RebelCreator", isVerified: false },
-      { name: "FreedomFighter", isVerified: true },
-      { name: "DigitalNomad", isVerified: false },
-      { name: "TechReviewer", isVerified: true },
-      { name: "CreativeGuru", isVerified: false },
-      { name: "AdventureBlogger", isVerified: true },
-      { name: "LifestyleTips", isVerified: false }
-    ];
-
-    const tags = isRebelContent 
-      ? [["banned", "truth", "censorship"], ["corporate", "media", "exposed"], ["freedom", "speech", "rebel"]]
-      : [["diy", "creative", "tutorial"], ["tech", "review", "gadgets"], ["travel", "adventure", "vlog"]];
-
-    for (let i = 0; i < count; i++) {
-      const creator = creators[Math.floor(Math.random() * creators.length)];
-      const titleArray = isRebelContent ? rebelTitles : normalTitles;
-      const tagArray = tags[Math.floor(Math.random() * tags.length)];
-      const uniqueId = `${sectionId}-${isRebelContent ? 'rebel' : 'normal'}-${baseTimestamp}-${i}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      mockVideos.push({
-        id: uniqueId,
-        title: titleArray[Math.floor(Math.random() * titleArray.length)],
-        thumbnail: `https://picsum.photos/320/180?random=${uniqueId}`,
-        creator: {
-          name: creator.name,
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${creator.name}`,
-          isVerified: creator.isVerified
-        },
-        views: `${Math.floor(Math.random() * 999)}K`,
-        uploadTime: `${Math.floor(Math.random() * 7) + 1} days ago`,
-        duration: `${Math.floor(Math.random() * 20) + 1}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
-        isRebelContent: isRebelContent,
-        isBannedElsewhere: isRebelContent && Math.random() > 0.5,
-        likes: Math.floor(Math.random() * 10000),
-        comments: Math.floor(Math.random() * 500),
-        tags: tagArray
-      });
-    }
-
-    return mockVideos;
-  };
-
-  // Load videos based on section
+  // Initial load + when filters change
   useEffect(() => {
     setIsLoading(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      let newVideos: MockVideo[] = [];
-      
-      switch (section) {
-        case 'rebel-trending':
-        case 'banned-elsewhere':
-        case 'underground':
-        case 'anti-corporate':
-          newVideos = generateMockVideos(12, true, section);
-          break;
-        case 'trending':
-          newVideos = [
-            ...generateMockVideos(4, true, section),
-            ...generateMockVideos(8, false, section)
-          ];
-          break;
-        default:
-          newVideos = [
-            ...generateMockVideos(3, true, section),
-            ...generateMockVideos(15, false, section)
-          ];
-      }
-
-      // Filter by search query if provided
-      if (searchQuery) {
-        newVideos = newVideos.filter(video =>
-          video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          video.creator.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          video.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
-      }
-
-      setVideos(newVideos);
-      setIsLoading(false);
-    }, 1000);
+    setPage(1); // reset pagination when section/search changes
   }, [section, searchQuery]);
 
-  const loadMoreVideos = () => {
+  useEffect(() => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    async function run() {
+      try {
+        const res = await fetch(API_PATH, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`Failed: ${res.status}`);
+        const json = (await res.json()) as ApiVideo[];
+        const mapped = json.map(mapVideo);
+        if (page === 1) setVideos(mapped);
+        else setVideos((prev) => [...prev, ...mapped]);
+      } catch (e) {
+        if ((e as any).name !== "AbortError") {
+          console.error(e);
+          setVideos([]);
+        }
+      } finally {
+        setIsLoading(false);
+        setLoadingMore(false);
+      }
+    }
+
+    run();
+    return () => controller.abort();
+  }, [API_PATH, page]);
+
+  const loadMore = () => {
     setLoadingMore(true);
-    
-    setTimeout(() => {
-      const isRebelSection = ['rebel-trending', 'banned-elsewhere', 'underground', 'anti-corporate'].includes(section);
-      const moreVideos = generateMockVideos(8, isRebelSection, `${section}-more`);
-      setVideos(prev => [...prev, ...moreVideos]);
-      setLoadingMore(false);
-    }, 1000);
+    setPage((p) => p + 1);
   };
 
-  const getSectionHeader = () => {
-    const sectionConfig: Record<string, { title: string; subtitle: string; icon?: React.ElementType; isRebel?: boolean }> = {
-      'home': { title: 'Home', subtitle: 'Videos curated for rebels like you' },
-      'trending': { title: 'Trending', subtitle: 'What\'s hot on Origin right now' },
-      'rebel-trending': { title: 'Rebel Trending', subtitle: 'The most rebellious content of the moment', icon: Flame, isRebel: true },
-      'banned-elsewhere': { title: 'Banned Elsewhere', subtitle: 'Content censored by corporate platforms', icon: Shield, isRebel: true },
-      'underground': { title: 'Underground', subtitle: 'Hidden gems from independent creators', icon: Zap, isRebel: true },
-      'anti-corporate': { title: 'Anti-Corporate', subtitle: 'Fighting back against the system', icon: AlertCircle, isRebel: true }
-    };
-
-    return sectionConfig[section] || sectionConfig['home'];
+  const sectionConfig: Record<
+    string,
+    {
+      title: string;
+      subtitle: string;
+      icon?: React.ElementType;
+      isRebel?: boolean;
+    }
+  > = {
+    home: { title: "Home", subtitle: "Videos curated for rebels like you" },
+    trending: { title: "Trending", subtitle: "What's hot on Origin right now" },
+    "rebel-trending": {
+      title: "Rebel Trending",
+      subtitle: "The most rebellious content of the moment",
+      icon: Flame,
+      isRebel: true,
+    },
+    "banned-elsewhere": {
+      title: "Banned Elsewhere",
+      subtitle: "Content censored by corporate platforms",
+      icon: Shield,
+      isRebel: true,
+    },
+    underground: {
+      title: "Underground",
+      subtitle: "Hidden gems from independent creators",
+      icon: Zap,
+      isRebel: true,
+    },
+    "anti-corporate": {
+      title: "Anti-Corporate",
+      subtitle: "Fighting back against the system",
+      icon: AlertCircle,
+      isRebel: true,
+    },
   };
 
-  const sectionHeader = getSectionHeader();
-  const Icon = sectionHeader.icon;
+  const header = sectionConfig[section] ?? sectionConfig.home;
+  const Icon = header.icon;
 
-  if (isLoading) {
+  if (isLoading && page === 1) {
     return (
       <div className="p-6">
         <div className="mb-6">
-          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="mb-2 h-8 w-64" />
           <Skeleton className="h-4 w-96" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="space-y-3">
               <Skeleton className="aspect-video w-full" />
@@ -203,77 +189,129 @@ export function VideoGrid({ searchQuery, section = 'home', onVideoClick }: Video
     <div className="p-6">
       {/* Section Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="mb-2 flex items-center gap-3">
           {Icon && (
-            <Icon className={`h-6 w-6 ${sectionHeader.isRebel ? 'text-destructive' : ''}`} />
+            <Icon
+              className={`h-6 w-6 ${header.isRebel ? "text-destructive" : ""}`}
+            />
           )}
-          <h1 className={`text-2xl font-bold ${sectionHeader.isRebel ? 'text-destructive' : ''}`}>
-            {sectionHeader.title}
+          <h1
+            className={`text-2xl font-bold ${
+              header.isRebel ? "text-destructive" : ""
+            }`}
+          >
+            {header.title}
           </h1>
-          {sectionHeader.isRebel && (
+          {header.isRebel && (
             <Badge variant="destructive" className="rebel-glow">
               REBEL ZONE
             </Badge>
           )}
         </div>
-        <p className="text-muted-foreground">{sectionHeader.subtitle}</p>
+        <p className="text-muted-foreground">{header.subtitle}</p>
       </div>
 
-      {/* Search Results Info */}
+      {/* Search info */}
       {searchQuery && (
-        <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+        <div className="mb-4 rounded-lg bg-muted/50 p-4">
           <p>
-            Showing results for: <strong>"{searchQuery}"</strong> 
+            Showing results for: <strong>"{searchQuery}"</strong>
             {videos.length > 0 && (
-              <span className="text-muted-foreground"> ({videos.length} videos found)</span>
+              <span className="text-muted-foreground">
+                {" "}
+                ({videos.length} videos loaded)
+              </span>
             )}
           </p>
         </div>
       )}
 
-      {/* No Results */}
-      {videos.length === 0 && !isLoading && (
-        <div className="text-center py-12">
-          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No videos found</h3>
+      {/* No results */}
+      {videos.length === 0 && !isLoading ? (
+        <div className="py-12 text-center">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 className="mb-2 text-lg font-semibold">No videos found</h3>
           <p className="text-muted-foreground">
-            {searchQuery 
+            {searchQuery
               ? `No results for "${searchQuery}". Try different keywords.`
-              : 'No videos available in this section yet.'
-            }
+              : "No videos available yet."}
           </p>
         </div>
-      )}
+      ) : null}
 
-      {/* Video Grid */}
+      {/* Grid */}
       {videos.length > 0 && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-            {videos.map((video) => (
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {videos.map((v) => (
               <VideoCard
-                key={video.id}
-                {...video}
-                onClick={() => onVideoClick?.(video.id)}
-                onCreatorClick={() => console.log('Navigate to creator:', video.creator.name)}
-                onAddToPlaylist={() => console.log('Add to playlist:', video.id)}
-                onShare={() => console.log('Share video:', video.id)}
-              />
+              key={v.id}
+              id={v.id}
+              title={v.title}
+              creator={v.creator}
+              thumbnail={v.thumbnail}
+              duration={v.duration}
+              views={v.views}
+              uploadTime={v.uploadTime}
+              isRebelContent={!!v.isRebelContent}   // ← rename this prop
+              onClick={() => (onVideoClick ? onVideoClick(v.id) : router.push(`/watch/${v.id}`))}
+            />
             ))}
           </div>
 
-          {/* Load More Button */}
+          {/* Load more */}
           <div className="text-center">
             <Button
-              onClick={loadMoreVideos}
+              onClick={loadMore}
               disabled={loadingMore}
               variant="outline"
               size="lg"
             >
-              {loadingMore ? 'Loading more videos...' : 'Load More Videos'}
+              {loadingMore ? "Loading more…" : "Load More Videos"}
             </Button>
           </div>
         </>
       )}
     </div>
   );
+}
+
+/* ---------- helpers ---------- */
+
+function formatViews(n: number | undefined) {
+  if (!n && n !== 0) return "—";
+  if (n < 1_000) return String(n);
+  if (n < 1_000_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
+  if (n < 1_000_000_000)
+    return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  return `${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
+}
+
+function timeAgo(iso: string | undefined) {
+  if (!iso) return "unknown";
+  const then = new Date(iso).getTime();
+  const diff = Math.max(0, Date.now() - then);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days} day${days > 1 ? "s" : ""} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} mo ago`;
+  const years = Math.floor(months / 12);
+  return `${years} yr${years > 1 ? "s" : ""} ago`;
+}
+
+function inferRebelFromTags(tags?: string[]) {
+  if (!tags?.length) return false;
+  const hot = [
+    "rebel",
+    "banned",
+    "censorship",
+    "underground",
+    "anti-corporate",
+    "truth",
+  ];
+  return tags.some((t) => hot.includes(t.toLowerCase()));
 }
