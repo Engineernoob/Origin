@@ -23,7 +23,7 @@ type ApiVideo = {
   publishedAt: string;
   channel: { name: string; avatarUrl?: string; verified?: boolean };
   tags?: string[];
-  isRebelContent?: boolean; // if your API returns this; otherwise we’ll compute a fallback
+  isRebelContent?: boolean;
 };
 
 type UiVideo = {
@@ -51,7 +51,7 @@ export function VideoGrid({
   const [page, setPage] = useState(1);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Map API -> UI
+  // Map API → UI
   const mapVideo = (v: ApiVideo): UiVideo => ({
     id: v.id,
     title: v.title,
@@ -80,18 +80,19 @@ export function VideoGrid({
     return `/api/videos?${params.toString()}`;
   }, [searchQuery, section, page]);
 
-  // Initial load + when filters change
+  // Reset on section/search change
   useEffect(() => {
     setIsLoading(true);
-    setPage(1); // reset pagination when section/search changes
+    setPage(1);
   }, [section, searchQuery]);
 
+  // Fetch on path/page change
   useEffect(() => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    async function run() {
+    (async () => {
       try {
         const res = await fetch(API_PATH, {
           cache: "no-store",
@@ -100,20 +101,18 @@ export function VideoGrid({
         if (!res.ok) throw new Error(`Failed: ${res.status}`);
         const json = (await res.json()) as ApiVideo[];
         const mapped = json.map(mapVideo);
-        if (page === 1) setVideos(mapped);
-        else setVideos((prev) => [...prev, ...mapped]);
-      } catch (e) {
-        if ((e as any).name !== "AbortError") {
+        setVideos((prev) => (page === 1 ? mapped : [...prev, ...mapped]));
+      } catch (e: any) {
+        if (e?.name !== "AbortError") {
           console.error(e);
-          setVideos([]);
+          if (page === 1) setVideos([]);
         }
       } finally {
         setIsLoading(false);
         setLoadingMore(false);
       }
-    }
+    })();
 
-    run();
     return () => controller.abort();
   }, [API_PATH, page]);
 
@@ -157,6 +156,7 @@ export function VideoGrid({
       icon: AlertCircle,
       isRebel: true,
     },
+    search: { title: "Search", subtitle: "Results that match your query" },
   };
 
   const header = sectionConfig[section] ?? sectionConfig.home;
@@ -245,17 +245,21 @@ export function VideoGrid({
           <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {videos.map((v) => (
               <VideoCard
-              key={v.id}
-              id={v.id}
-              title={v.title}
-              creator={v.creator}
-              thumbnail={v.thumbnail}
-              duration={v.duration}
-              views={v.views}
-              uploadTime={v.uploadTime}
-              isRebelContent={!!v.isRebelContent}   // ← rename this prop
-              onClick={() => (onVideoClick ? onVideoClick(v.id) : router.push(`/watch/${v.id}`))}
-            />
+                key={v.id}
+                id={v.id}
+                title={v.title}
+                creator={v.creator}
+                thumbnail={v.thumbnail}
+                duration={v.duration}
+                views={v.views}
+                uploadTime={v.uploadTime}
+                isRebelContent={!!v.isRebelContent} // ← matches VideoCard prop
+                onClick={() =>
+                  onVideoClick
+                    ? onVideoClick(v.id)
+                    : router.push(`/watch/${v.id}`)
+                }
+              />
             ))}
           </div>
 
