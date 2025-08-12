@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -63,6 +64,7 @@ export function VideoCard({
   onShare,
 }: VideoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const router = useRouter();
 
   return (
     <div
@@ -111,6 +113,11 @@ export function VideoCard({
               size="sm"
               variant="secondary"
               className="bg-white/90 hover:bg-white"
+              aria-label="Watch now"
+              onClick={(e) => {
+                e.stopPropagation(); // avoid triggering parent card click
+                router.push(`/player?v=${id}`); // navigate to player
+              }}
             >
               Watch Now
             </Button>
