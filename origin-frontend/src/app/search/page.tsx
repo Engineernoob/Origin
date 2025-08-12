@@ -2,6 +2,7 @@
 import { Header } from "../components/Header";
 import { Sidebar } from "../components/Sidebar";
 import { VideoGrid } from "../components/VideoGrid";
+import { BackBar } from "../components/BackBar";
 
 export default async function SearchPage({
   searchParams,
@@ -19,6 +20,7 @@ export default async function SearchPage({
         <Sidebar isOpen />
         <main className="flex-1">
           <VideoGrid searchQuery={q} section="search" />
+          <BackBar />
         </main>
       </div>
     </div>
