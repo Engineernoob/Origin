@@ -53,3 +53,4 @@ Thumbs.db
 # Database
 *.sqlite
 *.db
+origin-backend/.env.example
