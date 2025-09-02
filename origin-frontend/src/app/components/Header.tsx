@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, Menu, Flame, User, Bell, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { useAuth } from "@/app/lib/auth";
+import { useAuth } from "@/app/lib/auth-context";
 import { AuthModal } from "../components/auth/AuthModel";
 import { toast } from "sonner";
 
@@ -16,7 +16,7 @@ type HeaderProps = {
 
 export function Header({ onMenuClick, menuBtnRef }: HeaderProps) {
   const router = useRouter();
-  const { user, setUser, signOut } = useAuth();
+  const { user, logout, isLoading } = useAuth();
 
   const [q, setQ] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -127,11 +127,21 @@ export function Header({ onMenuClick, menuBtnRef }: HeaderProps) {
               <Bell className="h-5 w-5" />
               <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-[#e11d48]" />
             </Button>
+            <div className="flex items-center gap-3">
+              {user.picture && (
+                <img
+                  src={user.picture}
+                  alt={user.name}
+                  className="h-8 w-8 rounded-full"
+                />
+              )}
+              <span className="text-sm font-medium hidden sm:block">{user.name}</span>
+            </div>
             <Button
               variant="outline"
               className="h-10 rounded-lg border-neutral-300 bg-white px-3 text-[14px] hover:bg-neutral-50"
               onClick={() => {
-                signOut();
+                logout();
                 toast.success("Signed out");
               }}
             >
@@ -191,8 +201,8 @@ export function Header({ onMenuClick, menuBtnRef }: HeaderProps) {
         isOpen={openSignIn}
         onClose={() => setOpenSignIn(false)}
         defaultMode="signin"
-        onAuthSuccess={(u) => {
-          setUser(u);
+        onAuthSuccess={() => {
+          // Auth flow now handled by OAuth redirect
           toast.success("Signed in");
         }}
       />
@@ -200,8 +210,8 @@ export function Header({ onMenuClick, menuBtnRef }: HeaderProps) {
         isOpen={openSignUp}
         onClose={() => setOpenSignUp(false)}
         defaultMode="signup"
-        onAuthSuccess={(u) => {
-          setUser(u);
+        onAuthSuccess={() => {
+          // Auth flow now handled by OAuth redirect
           toast.success("Welcome to the rebellion");
         }}
       />

@@ -36,6 +36,20 @@ export class UsersService {
     });
   }
 
+  async create(userData: Partial<User>): Promise<User> {
+    const newUser = this.userRepo.create(userData);
+    return this.userRepo.save(newUser);
+  }
+
+  async update(id: number, userData: Partial<User>): Promise<User> {
+    await this.userRepo.update(id, userData);
+    const user = await this.findById(id);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return user;
+  }
+
   async deleteById(userId: number): Promise<void> {
     await this.userRepo.delete({ id: userId });
   }

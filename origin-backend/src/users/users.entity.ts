@@ -1,28 +1,45 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { 
+  Entity, 
+  PrimaryGeneratedColumn, 
+  Column, 
+  CreateDateColumn, 
+  UpdateDateColumn,
+  Index 
+} from 'typeorm';
 
-@Entity()
+@Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
+  @Index({ unique: true })
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @Column()
-  name: string;
+  name!: string;
 
-  @Column()
-  accessToken: string;
+  @Column({ nullable: true })
+  googleId?: string;
 
-  @Column()
-  refreshToken: string;
+  @Column({ nullable: true })
+  accessToken?: string;
+
+  @Column({ nullable: true })
+  refreshToken?: string;
 
   @Column({ nullable: true })
   picture?: string;
 
-  @Column('simple-array', { default: '' }) // Stores tags as CSV
-  watchedTags: string[];
+  @Column('simple-array', { default: '' })
+  watchedTags!: string[];
 
-  @Column('simple-array', { default: '' }) // Stores subscriptions as CSV
-  subscriptions: string[];
+  @Column('simple-array', { default: '' })
+  subscriptions!: string[];
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz' })
+  updatedAt!: Date;
 }

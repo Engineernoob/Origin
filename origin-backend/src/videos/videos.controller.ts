@@ -1,7 +1,26 @@
-import { Controller, Get, Param, ParseIntPipe, Query, Post, Body, Patch, Delete } from '@nestjs/common';
+import { 
+  Controller, 
+  Get, 
+  Param, 
+  ParseIntPipe, 
+  Query, 
+  Post, 
+  Body, 
+  Patch, 
+  Delete, 
+  UseInterceptors, 
+  UploadedFile, 
+  UploadedFiles, 
+  UseGuards,
+  Req,
+  BadRequestException
+} from '@nestjs/common';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { VideosService } from './videos.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { UploadService } from '../common/services/upload.service';
 
 @Controller('videos')
 export class VideosController {
@@ -62,5 +81,58 @@ export class VideosController {
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.videos.remove(id);
+  }
+
+  // Upload video with metadata
+  @Post('upload')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FilesInterceptor('files', 2, {
+      storage: UploadService.getVideoStorage(),
+      fileFilter: (req, file, callback) => {
+        if (file.fieldname === 'video') {
+          return UploadService.videoFileFilter(req, file, callback);
+        } else if (file.fieldname === 'thumbnail') {
+          return UploadService.imageFileFilter(req, file, callback);
+        }
+        callback(new Error('Invalid field name'), false);
+      },
+      limits: {
+        fileSize: 500 * 1024 * 1024, // 500MB max for video
+      },
+    })
+  )
+  async uploadVideo(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() metadata: { title: string; description?: string; tags?: string; isRebelContent?: string },
+    @Req() req: any
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No files uploaded');
+    }
+
+    const videoFile = files.find(f => f.fieldname === 'video');
+    const thumbnailFile = files.find(f => f.fieldname === 'thumbnail');
+
+    if (!videoFile) {
+      throw new BadRequestException('Video file is required');
+    }
+
+    const user = req.user; // From JWT guard
+
+    // Create video entry
+    const createDto: CreateVideoDto = {
+      title: metadata.title,
+      description: metadata.description || '',
+      creatorName: user.name,
+      creatorAvatar: user.picture || null,
+      creatorVerified: false,
+      videoUrl: `/uploads/videos/${videoFile.filename}`,
+      thumbnailUrl: thumbnailFile ? `/uploads/thumbnails/${thumbnailFile.filename}` : null,
+      tags: metadata.tags ? metadata.tags.split(',').map(t => t.trim()) : [],
+      isRebelContent: metadata.isRebelContent === 'true',
+    };
+
+    return this.videos.create(createDto);
   }
 }

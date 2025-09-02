@@ -1,7 +1,9 @@
 // auth.controller.ts
 import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
+import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
@@ -10,6 +12,7 @@ import type { Response } from 'express';
 export class AuthController {
   constructor(
     private readonly usersService: UsersService,
+    private readonly authService: AuthService,
     private readonly jwt: JwtService,
     private readonly cfg: ConfigService,
   ) {}
@@ -43,10 +46,30 @@ export class AuthController {
       picture: dbUser.picture,
     });
 
-    const frontend = this.cfg.get<string>('FRONTEND_URL')!;
+    const frontend = this.cfg.get<string>('FRONTEND_URL') || 'http://localhost:3001';
     // Option A: redirect with token in query
     res.redirect(
       `${frontend}/auth/callback?token=${encodeURIComponent(token)}`,
     );
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async getCurrentUser(@Req() req) {
+    const user = await this.authService.getCurrentUser(req.user.sub);
+    if (!user) {
+      return { error: 'User not found' };
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      watchedTags: user.watchedTags,
+      subscriptions: user.subscriptions,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 }
