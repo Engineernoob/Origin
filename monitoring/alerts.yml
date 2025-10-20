@@ -1,0 +1,273 @@
+# Production Alert Rules for Origin
+
+groups:
+- name: origin-backend-alerts
+  rules:
+  # High error rate
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+    for: 5m
+    labels:
+      severity: critical
+      service: origin-backend
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is {{ $value }} errors per second"
+
+  # High latency
+  - alert: HighLatency
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+    for: 5m
+    labels:
+      severity: warning
+      service: origin-backend
+    annotations:
+      summary: "High latency detected"
+      description: "95th percentile latency is {{ $value }} seconds"
+
+  # High memory usage
+  - alert: HighMemoryUsage
+    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.85
+    for: 5m
+    labels:
+      severity: warning
+      service: system
+    annotations:
+      summary: "High memory usage"
+      description: "Memory usage is {{ $value | humanizePercentage }}"
+
+  # High CPU usage
+  - alert: HighCPUUsage
+    expr: rate(process_cpu_seconds_total[5m]) * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+      service: system
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage is {{ $value }}%"
+
+  # Database connection issues
+  - alert: DatabaseConnectionFailure
+    expr: pg_stat_activity_count > pg_settings_max_connections * 0.9
+    for: 2m
+    labels:
+      severity: critical
+      service: database
+    annotations:
+      summary: "Database connection pool exhausted"
+      description: "Database connections are at {{ $value }}% of maximum"
+
+  # Redis connection issues
+  - alert: RedisConnectionFailure
+    expr: up{job="redis-exporter"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: cache
+    annotations:
+      summary: "Redis is down"
+      description: "Redis instance is not responding"
+
+  # Elasticsearch cluster health
+  - alert: ElasticsearchClusterRed
+    expr: elasticsearch_cluster_health_status{color="red"} == 1
+    for: 1m
+    labels:
+      severity: critical
+      service: search
+    annotations:
+      summary: "Elasticsearch cluster is red"
+      description: "Elasticsearch cluster health is red"
+
+  - alert: ElasticsearchClusterYellow
+    expr: elasticsearch_cluster_health_status{color="yellow"} == 1
+    for: 5m
+    labels:
+      severity: warning
+      service: search
+    annotations:
+      summary: "Elasticsearch cluster is yellow"
+      description: "Elasticsearch cluster health is yellow"
+
+  # Pod restart issues
+  - alert: PodRestartHigh
+    expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+    for: 5m
+    labels:
+      severity: warning
+      service: kubernetes
+    annotations:
+      summary: "Pod restart detected"
+      description: "Pod {{ $labels.pod }} is restarting frequently"
+
+  # Kubernetes node issues
+  - alert: NodeNotReady
+    expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+    for: 5m
+    labels:
+      severity: critical
+      service: kubernetes
+    annotations:
+      summary: "Node not ready"
+      description: "Node {{ $labels.node }} is not ready"
+
+  # Application-specific alerts
+  - alert: VideoProcessingQueueFull
+    expr: bull_queue_waiting{queue="video-processing"} > 100
+    for: 10m
+    labels:
+      severity: warning
+      service: video-processing
+    annotations:
+      summary: "Video processing queue is full"
+      description: "{{ $value }} videos waiting in processing queue"
+
+  - alert: VideoUploadFailure
+    expr: increase(video_upload_failures_total[5m]) > 5
+    for: 2m
+    labels:
+      severity: critical
+      service: video-upload
+    annotations:
+      summary: "Multiple video upload failures"
+      description: "{{ $value }} video upload failures in last 5 minutes"
+
+  - alert: DiskSpaceLow
+    expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+    for: 5m
+    labels:
+      severity: critical
+      service: system
+    annotations:
+      summary: "Low disk space"
+      description: "Disk space is {{ $value }}% on {{ $labels.instance }}"
+
+  - alert: S3UploadFailure
+    expr: increase(s3_upload_failures_total[5m]) > 3
+    for: 2m
+    labels:
+      severity: critical
+      service: storage
+    annotations:
+      summary: "S3 upload failures"
+      description: "{{ $value }} S3 upload failures in last 5 minutes"
+
+  # Frontend-specific alerts
+  - alert: FrontendHighResponseTime
+    expr: histogram_quantile(0.95, rate(nginx_request_duration_seconds_bucket[5m])) > 2
+    for: 5m
+    labels:
+      severity: warning
+      service: frontend
+    annotations:
+      summary: "Frontend high response time"
+      description: "95th percentile response time is {{ $value }} seconds"
+
+  - alert: FrontendErrorRate
+    expr: rate(nginx_http_requests_total{status=~"5.."}[5m]) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+      service: frontend
+    annotations:
+      summary: "Frontend high error rate"
+      description: "Frontend error rate is {{ $value }} errors per second"
+
+  # Business metrics alerts
+  - alert: LowUserEngagement
+    expr: rate(user_actions_total[1h]) < 10
+    for: 30m
+    labels:
+      severity: warning
+      service: business
+    annotations:
+      summary: "Low user engagement"
+      description: "User actions per hour is {{ $value }}"
+
+  - alert: VideoViewsDrop
+    expr: rate(video_views_total[1h]) < 100
+    for: 30m
+    labels:
+      severity: warning
+      service: business
+    annotations:
+      summary: "Drop in video views"
+      description: "Video views per hour is {{ $value }}"
+
+- name: origin-health-checks
+  rules:
+  # Application health endpoint
+  - alert: ApplicationHealthCheckFailed
+    expr: up{job="origin-backend"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: origin-backend
+    annotations:
+      summary: "Origin backend health check failed"
+      description: "Backend health check endpoint is not responding"
+
+  - alert: FrontendHealthCheckFailed
+    expr: up{job="origin-frontend"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: origin-frontend
+    annotations:
+      summary: "Origin frontend health check failed"
+      description: "Frontend health check endpoint is not responding"
+
+  # External endpoint monitoring
+  - alert: ExternalEndpointDown
+    expr: probe_success == 0
+    for: 2m
+    labels:
+      severity: critical
+      service: external-monitoring
+    annotations:
+      summary: "External endpoint down"
+      description: "Endpoint {{ $labels.instance }} is down"
+
+  - alert: ExternalEndpointSlow
+    expr: probe_duration_seconds > 5
+    for: 5m
+    labels:
+      severity: warning
+      service: external-monitoring
+    annotations:
+      summary: "External endpoint slow"
+      description: "Endpoint {{ $labels.instance }} response time is {{ $value }}s"
+
+- name: origin-business-metrics
+  rules:
+  # Revenue alerts
+  - alert: RevenueDrop
+    expr: rate(revenue_total[24h]) < rate(revenue_total[24h] offset 168h) * 0.8
+    for: 1h
+    labels:
+      severity: warning
+      service: business
+    annotations:
+      summary: "Revenue drop detected"
+      description: "Daily revenue is 80% below weekly average"
+
+  - alert: UserRegistrationDrop
+    expr: rate(user_registrations_total[24h]) < rate(user_registrations_total[24h] offset 168h) * 0.7
+    for: 12h
+    labels:
+      severity: warning
+      service: business
+    annotations:
+      summary: "User registration drop"
+      description: "New user registrations are 70% below weekly average"
+
+  - alert: VideoUploadStalled
+    expr: increase(video_uploads_total[6h]) == 0
+    for: 6h
+    labels:
+      severity: warning
+      service: video-upload
+    annotations:
+      summary: "No new video uploads"
+      description: "No new video uploads in the last 6 hours"

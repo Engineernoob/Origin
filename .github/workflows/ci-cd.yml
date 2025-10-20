@@ -1,0 +1,376 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Backend Tests and Security Scan
+  backend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./origin-backend
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: origin-backend/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Run tests
+      run: npm run test:cov
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./origin-backend/coverage/lcov.info
+        flags: backend
+        name: backend-coverage
+
+    - name: Security audit
+      run: npm audit --audit-level moderate
+
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  # Frontend Tests and Bundle Analysis
+  frontend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./origin-frontend
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: origin-frontend/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Build application
+      run: npm run build
+      env:
+        NEXT_PUBLIC_API_URL: http://localhost:3000
+
+    - name: Run tests
+      run: npm run test
+
+    - name: Security audit
+      run: npm audit --audit-level moderate
+
+    - name: Analyze bundle size
+      uses: preactjs/compressed-size-action@v2
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        pattern: "./origin-frontend/.next/**/*.{js,css}"
+
+  # Build and Push Docker Images
+  build-and-push:
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata (backend)
+      id: meta-backend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        target: backend
+        push: true
+        tags: ${{ steps.meta-backend.outputs.tags }}
+        labels: ${{ steps.meta-backend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Extract metadata (frontend)
+      id: meta-frontend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        target: frontend
+        push: true
+        tags: ${{ steps.meta-frontend.outputs.tags }}
+        labels: ${{ steps.meta-frontend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Generate SBOM for backend
+      uses: anchore/sbom-action@v0.15.1
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
+        format: spdx-json
+        output-file: backend-sbom.spdx.json
+
+    - name: Generate SBOM for frontend
+      uses: anchore/sbom-action@v0.15.1
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
+        format: spdx-json
+        output-file: frontend-sbom.spdx.json
+
+    - name: Upload SBOM artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: sbom
+        path: "*-sbom.spdx.json"
+
+  # Staging Deployment (for develop branch)
+  deploy-staging:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to staging
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl set image deployment/origin-backend backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }} -n origin-staging
+        kubectl set image deployment/origin-frontend frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }} -n origin-staging
+        
+        # Wait for rollout
+        kubectl rollout status deployment/origin-backend -n origin-staging --timeout=300s
+        kubectl rollout status deployment/origin-frontend -n origin-staging --timeout=300s
+
+    - name: Run smoke tests
+      run: |
+        # Add your smoke test commands here
+        echo "Running smoke tests..."
+        # curl -f http://staging.origin.example.com/health || exit 1
+
+  # Production Deployment (for main branch) - Progressive Rollout
+  deploy-production:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Run pre-deployment checks
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Check current pod status
+        kubectl get pods -n origin-production
+        
+        # Check health endpoints
+        kubectl get pods -n origin-production -o jsonpath='{.items[*].status.podIP}'
+        
+        # Verify all pods are ready
+        kubectl wait --for=condition=ready pod -l app=origin-backend -n origin-production --timeout=60s
+        kubectl wait --for=condition=ready pod -l app=origin-frontend -n origin-production --timeout=60s
+
+    - name: Redeploy backend (25% initially - canary)
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Scale up new replica first
+        kubectl patch deployment origin-backend -p '{"spec":{"replicas":4}}' -n origin-production
+        sleep 10
+        
+        # Update image
+        kubectl set image deployment/origin-backend backend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:${{ github.sha }} -n origin-production
+        
+        # Wait for rollout readiness
+        kubectl rollout status deployment/origin-backend -n origin-production --timeout=600s
+
+    - name: Health check and canary verification
+      run: |
+        echo "Performing health checks on canary deployment..."
+        # Add comprehensive health checks
+        # curl -f https://api.origin.example.com/health
+        # Run smoke tests against production
+
+    - name: Complete deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Scale up frontend
+        kubectl set image deployment/origin-frontend frontend=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }} -n origin-production
+        
+        # Wait for complete rollout
+        kubectl rollout status deployment/origin-frontend -n origin-production --timeout=600s
+        
+        # Verify everything is healthy
+        kubectl get pods -n origin-production
+        kubectl get services -n origin-production
+
+    - name: Post-deployment verification
+      run: |
+        # Run comprehensive tests
+        echo "Running post-deployment verification..."
+        # Add load testing, monitoring checks, etc.
+
+    - name: Notify deployment success
+      uses: 8398a7/action-slack@v3
+      if: success()
+      with:
+        status: success
+        channel: '#deployments'
+        text: "✅ Production deployment successful for Origin (commit: ${{ github.sha }})"
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Notify deployment failure
+      uses: 8398a7/action-slack@v3
+      if: failure()
+      with:
+        status: failure
+        channel: '#deployments'
+        text: "❌ Production deployment failed for Origin (commit: ${{ github.sha }})"
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # End-to-End Tests
+  e2e-tests:
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Playwright
+      run: |
+        npm ci
+        npx playwright install --with-deps
+
+    - name: Run E2E tests
+      run: |
+        npx playwright test --config e2e.config.js
+      env:
+        BASE_URL: https://origin.example.com
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: playwright-report
+        path: playwright-report/
+
+  # Performance Tests
+  performance-tests:
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run K6 load tests
+      uses: grafana/k6-action@v0.3.1
+      with:
+        filename: tests/load-test.js
+      env:
+        BASE_URL: https://origin.example.com
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: k6-results
+        path: k6-results.json

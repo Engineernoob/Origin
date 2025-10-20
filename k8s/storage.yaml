@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: origin-uploads-pvc
+  namespace: origin-production
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: "gp2"  # Use appropriate storage class for your cloud provider
+  resources:
+    requests:
+      storage: 1Ti
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: origin-cache-pvc
+  namespace: origin-production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: "gp3"
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: origin-logs-pvc
+  namespace: origin-production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: "gp3"
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: origin-fast-ssd
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+  fsType: ext4
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer

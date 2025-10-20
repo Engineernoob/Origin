@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: origin-production
+  labels:
+    name: origin-production
+    env: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: origin-monitoring
+  labels:
+    name: origin-monitoring
+    env: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: origin-logging
+  labels:
+    name: origin-logging
+    env: production

@@ -1,0 +1,86 @@
+# Backup and Disaster Recovery Strategy for Origin Platform
+
+## Backup Schedule
+
+### Database Backups (PostgreSQL)
+- **Full Backups**: Daily at 2:00 AM UTC
+- **Incremental Backups**: Every 4 hours
+- **WAL Archives**: Continuous
+- **Retention**: 30 days (daily), 12 months (weekly)
+- **Point-in-Time Recovery**: 7 days
+
+### Redis Backups
+- **Snapshots**: Every 6 hours
+- **AOF**: Continuous
+- **Retention**: 7 days
+- **Cross-Region Replication**: Yes
+
+### S3 Storage Backups
+- **Video Files**: Cross-region replication enabled
+- **Versioning**: Enabled for all buckets
+- **Lifecycle Policy**: 
+  - Standard → Glacier after 30 days
+  - Glacier → Glacier Deep Archive after 90 days
+- **Retention**: 1 year
+
+### Elasticsearch Backups
+- **Snapshots**: Daily at 3:00 AM UTC
+- **Retention**: 30 days
+- **Cross-Region Replication**: Yes
+
+## Disaster Recovery Plan
+
+### Recovery Time Objectives (RTO)
+- **Critical Services**: 4 hours
+- **Non-Critical Services**: 24 hours
+
+### Recovery Point Objectives (RPO)
+- **Database**: 15 minutes
+- **Cache**: 4 hours
+- **File Storage**: 24 hours
+
+### Multi-Region Setup
+- **Primary Region**: us-east-1
+- **DR Region**: us-west-2
+- **Failover Time**: < 30 minutes
+- **Data Sync**: Real-time (replication)
+
+## Backup Automation
+
+### TFL Scripts
+hcl
+# Backup S3 buckets
+resource "aws_s3_bucket_versioning" "videos_backup_enabled" {
+  bucket = aws_s3_bucket.videos.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Cross-region replication
+resource "aws_s3_bucket_replication_configuration" "videos_replication" {
+  role = aws_iam_role.s3_replication_role.arn
+  bucket = aws_s3_bucket.videos.id
+
+  rule {
+    id     = "backup"
+    status = "Enabled"
+
+    destination {
+      bucket        = aws_s3_bucket.videos_backup.arn
+      storage_class = "GLACIER"
+    }
+  }
+}
+
+# RDS automated backups
+resource "aws_db_instance" "origin_production" {
+  backup_retention_period = 30
+  backup_window          = "02:00-03:00"
+  maintenance_window     = "sun:03:00-sun:04:00"
+  
+  skip_final_snapshot    = false
+  final_snapshot_identifier = "origin-final-snapshot"
+  
+  deletion_protection    = true
+}
