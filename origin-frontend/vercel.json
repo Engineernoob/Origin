@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "name": "origin-frontend",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_BACKEND_URL": "@backend_url",
+    "BACKEND_URL": "@backend_url",
+    "CUSTOM_API_URL": "@custom_api_url"
+  },
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "functions": {
+    "pages/api/**/*.js": {
+      "maxDuration": 30
+    }
+  }
+}

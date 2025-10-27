@@ -14,7 +14,13 @@ import { Progress } from "@/app/components/ui/progress";
 import { Upload, Video, Image, Flame, AlertCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") || "http://localhost:3000";
+const API_BASE = typeof window !== 'undefined' 
+  ? (process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") || 
+     process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || 
+     window.location.origin)
+  : (process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") || 
+     process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") || 
+     "http://localhost:8080");
 
 export default function UploadPage() {
   const router = useRouter();
