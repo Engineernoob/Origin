@@ -132,3 +132,4 @@ api-keys.txt
 
 # Factory artifacts (system generated)
 .factory/
+origin-frontend/.env.example
