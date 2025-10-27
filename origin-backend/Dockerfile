@@ -42,5 +42,10 @@ EXPOSE 8080
 ENV NODE_ENV production
 ENV PORT 8080
 
+# YouTube API Environment Variables 
+ENV YOUTUBE_API_KEY=""
+ENV YOUTUBE_API_QUOTA_LIMIT="9000"
+ENV YOUTUBE_CACHE_TTL="3600"
+
 # Run the server
 CMD ["node", "/app/dist/server.js"]
