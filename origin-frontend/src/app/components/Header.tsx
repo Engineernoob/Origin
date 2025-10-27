@@ -16,7 +16,7 @@ type HeaderProps = {
 
 export function Header({ onMenuClick, menuBtnRef }: HeaderProps) {
   const router = useRouter();
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout } = useAuth();
 
   const [q, setQ] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);

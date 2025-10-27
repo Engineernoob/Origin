@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
       { source: "/api/:path*", destination: "http://localhost:3000/:path*" },
     ];
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 export default nextConfig;

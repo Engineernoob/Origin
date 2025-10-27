@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { VideoCard } from "./VideoCard";
+// import { useParams } from "next/navigation";
+// import { VideoCard } from "./VideoCard";
 import { Skeleton } from "./ui/skeleton";
 import { AlertCircle } from "lucide-react";
 

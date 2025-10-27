@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin - Ad-Free Video Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a; color: #fff; line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem 2rem;
+            text-align: center;
+        }
+        .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .video-card {
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .video-card:hover { transform: translateY(-4px); }
+        .video-thumbnail {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: #333;
+        }
+        .video-info {
+            padding: 1rem;
+        }
+        .video-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .video-stats { 
+            color: #999; 
+            font-size: 0.9rem; 
+            display: flex; 
+            justify-content: space-between;
+        }
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+        .error {
+            text-align: center;
+            padding: 3rem;
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🎬 Origin</h1>
+        <p>The Ad-Free Video Platform</p>
+    </header>
+
+    <div class="container">
+        <div id="loading" class="loading">
+            <h3>Loading videos...</h3>
+        </div>
+        <div id="error" class="error" style="display: none;">
+            <h3>Failed to load videos</h3>
+            <p>Please check back later</p>
+        </div>
+        <div id="videoGrid" class="video-grid" style="display: none;"></div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE = 'https://origin-backend-misty-shape-4040.fly.dev';
+        
+        // Video data structure with fallback demo videos
+        const demoVideos = [
+            {
+                id: 1,
+                title: "Big Buck Bunny",
+                thumbnail: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
+                videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                views: 2543000,
+                createdAt: "2024-01-15T00:00:00.000Z"
+            },
+            {
+                id: 2,
+                title: "Elephant Dream",
+                thumbnail: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg",
+                videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+                views: 1832000,
+                createdAt: "2024-02-10T00:00:00.000Z"
+            },
+            {
+                id: 3,
+                title: "Sintel",
+                thumbnail: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg",
+                videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+                views: 3421000,
+                createdAt: "2024-03-05T00:00:00.000Z"
+            }
+        ];
+
+        function formatViews(views) {
+            if (views >= 1000000) {
+                return (views / 1000000).toFixed(1) + 'M views';
+            }
+            return views.toLocaleString() + ' views';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function openVideo(video) {
+            // Create a simple video player page
+            const playerWindow = window.open('', '_blank');
+            playerWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>${video.title} - Origin</title>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        body { 
+                            margin: 0; 
+                            padding: 0; 
+                            background: #0a0a0a; 
+                            color: #fff; 
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        }
+                        .container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+                        .video-wrapper { 
+                            position: relative; 
+                            padding-bottom: 56.25%; 
+                            height: 0; 
+                            overflow: hidden; 
+                            background: #000; 
+                            border-radius: 12px; 
+                        }
+                        .video-wrapper video {
+                            position: absolute; 
+                            top: 0; 
+                            left: 0; 
+                            width: 100%; 
+                            height: 100%; 
+                        }
+                        .video-info { margin-top: 1rem; }
+                        .title { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+                        .stats { color: #999; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="video-wrapper">
+                            <video controls autoplay>
+                                <source src="${video.videoUrl}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <div class="video-info">
+                            <div class="title">${video.title}</div>
+                            <div class="stats">${formatViews(video.views)} • ${formatDate(video.createdAt)}</div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            playerWindow.document.close();
+        }
+
+        function renderVideos(videos) {
+            const grid = document.getElementById('videoGrid');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+
+            loading.style.display = 'none';
+            error.style.display = 'none';
+
+            if (!videos || videos.length === 0) {
+                // Use demo videos as fallback
+                renderVideos(demoVideos);
+                return;
+            }
+
+            grid.innerHTML = videos.map(video => `
+                <div class="video-card" onclick="openVideo(${JSON.stringify(video).replace(/"/g, '&quot;')})">
+                    <img src="${video.thumbnail}" alt="${video.title}" class="video-thumbnail" 
+                         onerror="this.style.background='#333'; this.style.display='flex'; this.innerHTML='▶️';">
+                    <div class="video-info">
+                        <div class="video-title">${video.title}</div>
+                        <div class="video-stats">
+                            <span>${formatViews(video.views)}</span>
+                            <span>${formatDate(video.createdAt)}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            grid.style.display = 'grid';
+        }
+
+        // Try to load from API first, fallback to demo videos
+        fetch(`${API_BASE}/api/videos`)
+            .then(response => response.json())
+            .then(videos => {
+                console.log('Loaded videos from API:', videos);
+                renderVideos(videos);
+            })
+            .catch(error => {
+                console.log('API not available, using demo videos:', error);
+                renderVideos(demoVideos);
+            });
+    </script>
+</body>
+</html>
