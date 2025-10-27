@@ -1,3 +1,5 @@
+"use client";
+
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -59,8 +61,6 @@ const videos = [
     tags: ["animation", "adventure", "dragon"]
   }
 ];
-
-"use client";
 
 interface VideoPageProps {
   params: { id: string };
