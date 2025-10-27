@@ -33,7 +33,9 @@ export function useRecommendations(algorithm?: string, videoId?: string) {
         if (videoId) params.set('videoId', videoId);
         params.set('limit', '20');
 
-        const response = await fetch(`${API_BASE}/recommendations?${params}`, {
+        const absoluteUrl = `${API_BASE}/recommendations?${params}`;
+        console.log("Fetching recommendations from:", absoluteUrl);
+        const response = await fetch(absoluteUrl, {
           credentials: 'include', // Include cookies for auth
         });
 

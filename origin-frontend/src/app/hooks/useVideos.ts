@@ -57,8 +57,15 @@ export function useVideos(params: Params) {
     key, 
     async (url) => {
       try {
-        // Try to fetch from the API first
-        const response = await fetch(url, { credentials: "include" });
+        // Use absolute URL to avoid mixed content issues
+        const baseUrl = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ||
+                       process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ||
+                       "https://originvideo.duckdns.org";
+        
+        const absoluteUrl = url.startsWith('/') ? `${baseUrl}${url}` : url;
+        
+        console.log("Fetching videos from:", absoluteUrl);
+        const response = await fetch(absoluteUrl, { credentials: "include" });
         if (!response.ok) throw new Error("Failed to fetch");
         return response.json();
       } catch (err) {
