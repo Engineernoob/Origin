@@ -10,7 +10,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { YoutubeModule } from './youtube/youtube.module';
 import { AuthModule } from './auth/auth.module';
-import { RecommendationsModule } from './recommendations/recommendations.module';
+import { RecommendationModule } from './recommendations/recommendations.module';
 
 @Module({
   imports: [
@@ -52,7 +52,7 @@ import { RecommendationsModule } from './recommendations/recommendations.module'
     UsersModule,
     YoutubeModule,
     AuthModule,
-    RecommendationsModule,
+    RecommendationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
