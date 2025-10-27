@@ -23,7 +23,11 @@ interface AuthModalProps {
   defaultMode?: "signin" | "signup";
 }
 
-const BACKEND = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+const BACKEND = 
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ??
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ??
+  process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ??
+  "https://originvideo.duckdns.org";
 
 export function AuthModal({
   isOpen,
@@ -78,7 +82,12 @@ export function AuthModal({
 
   const handleGoogle = () => {
     // Kick off OAuth on the backend
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000'}/auth/google`;
+    const backendUrl = 
+      process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ??
+      process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ??
+      process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ??
+      "https://originvideo.duckdns.org";
+    window.location.href = `${backendUrl}/auth/google`;
   };
 
   return (

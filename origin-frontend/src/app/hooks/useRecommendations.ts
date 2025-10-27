@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, '') ||
-  'http://localhost:3000';
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, '') ||
+  'https://originvideo.duckdns.org';
 
 interface Recommendation {
   id: string;

@@ -9,8 +9,8 @@
   ],
   "env": {
     "NEXT_PUBLIC_BACKEND_URL": "https://originvideo.duckdns.org",
-    "BACKEND_URL": "https://originvideo.duckdns.org",
-    "CUSTOM_API_URL": "https://originvideo.duckdns.org"
+    "NEXT_PUBLIC_API_BASE": "https://originvideo.duckdns.org",
+    "NEXT_PUBLIC_API_URL": "https://originvideo.duckdns.org"
   },
   "framework": "nextjs",
   "regions": ["iad1"],
