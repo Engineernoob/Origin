@@ -13,8 +13,11 @@ COPY package.json package-lock.json* ./
 # Install minimal dependencies  
 RUN npm ci --production --ignore-scripts
 
-# Copy frontend build (will be created during build process)
-COPY ../origin-frontend/out ./public/
+# Copy frontend build (copied by build script)
+COPY ./public ./public/
+
+# Debug: show what was copied
+RUN ls -la ./public/ || echo "No public directory found"
 
 # Create a unified server that serves both frontend and backend
 COPY server.js /app/dist/server.js

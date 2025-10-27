@@ -57,16 +57,31 @@ function getMimeType(filePath) {
 
 // Serve static files from frontend build
 function serveStaticFile(res, filePath) {
+  // Strip leading slash for path joining
+  filePath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+  
   const fullPath = path.join(__dirname, 'public', filePath);
   
+  // Debug logging
+  console.log(`Serving file: ${filePath} -> ${fullPath}`);
+  console.log(`File exists: ${fs.existsSync(fullPath)}`);
+  
   // Default to index.html for SPA routing
-  if (filePath === '/' || !fs.existsSync(fullPath)) {
+  if (filePath === '' || !fs.existsSync(fullPath)) {
     const indexPath = path.join(__dirname, 'public', 'index.html');
+    console.log(`Fallback to index.html: ${indexPath}`);
+    console.log(`Index exists: ${fs.existsSync(indexPath)}`);
+    
     if (fs.existsSync(indexPath)) {
-      const content = fs.readFileSync(indexPath, 'utf8');
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(content);
-      return true;
+      try {
+        const content = fs.readFileSync(indexPath, 'utf8');
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(content);
+        return true;
+      } catch (err) {
+        console.error('Error reading index.html:', err);
+        return false;
+      }
     }
     return false;
   }
@@ -78,6 +93,7 @@ function serveStaticFile(res, filePath) {
     res.end(content);
     return true;
   } catch (err) {
+    console.error('Error serving static file:', err);
     return false;
   }
 }
@@ -85,6 +101,8 @@ function serveStaticFile(res, filePath) {
 const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
+
+  console.log(`Request: ${req.method} ${pathname}`);
 
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -100,6 +118,7 @@ const server = http.createServer((req, res) => {
 
   // API routes
   if (pathname.startsWith('/api/')) {
+    console.log('API route detected');
     res.setHeader('Content-Type', 'application/json');
 
     if (pathname === '/api/videos' || pathname === '/api/videos/') {
@@ -122,24 +141,35 @@ const server = http.createServer((req, res) => {
   }
 
   // Serve frontend static files
+  console.log('Frontend route detected, checking static files...');
   if (pathname.startsWith('/_next/') || 
       pathname.startsWith('/api/') || 
       pathname.includes('.')) {
+    console.log('Attempting to serve static file:', pathname);
     if (serveStaticFile(res, pathname)) {
       return;
     }
   }
 
   // Serve the main frontend app for all other routes (SPA routing)
+  console.log('Attempting to serve index.html for SPA routing');
   const indexPath = path.join(__dirname, 'public', 'index.html');
+  console.log('Index.html path:', indexPath);
+  console.log('Index.html exists:', fs.existsSync(indexPath));
+  
   if (fs.existsSync(indexPath)) {
-    const content = fs.readFileSync(indexPath, 'utf8');
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(content);
-    return;
+    try {
+      const content = fs.readFileSync(indexPath, 'utf8');
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(content);
+      return;
+    } catch (err) {
+      console.error('Error reading index.html:', err);
+    }
   }
 
   // Fallback to simple HTML if no frontend build exists
+  console.log('Falling back to simple HTML');
   res.writeHead(200, { 'Content-Type': 'text/html' });
   res.end(`
     <!DOCTYPE html>

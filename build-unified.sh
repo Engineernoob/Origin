@@ -25,6 +25,13 @@ cd ..
 echo "🐳 Step 2: Building Docker image for unified deployment..."
 cd origin-backend
 
+# Copy frontend build to backend directory for Docker build
+rsync -av ../origin-frontend/out/ ./public/
+
+# Show what was copied
+echo "📁 Frontend files copied:"
+ls -la ./public/
+
 # Build the Docker image
 docker build -t origin-unified .
 
