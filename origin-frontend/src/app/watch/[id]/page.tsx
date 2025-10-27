@@ -67,20 +67,87 @@ interface VideoPageProps {
 }
 
 export default function VideoPage({ params }: VideoPageProps) {
-  const video = videos.find(v => v.id === params.id);
+  const [video, setVideo] = useState(videos.find(v => v.id === params.id));
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+  const [showStatus, setShowStatus] = useState(true);
 
-  if (!video) {
+  useEffect(() => {
+    // Check backend connection
+    const checkBackendConnection = async () => {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ||
+                       process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ||
+                       "https://originvideo.duckdns.org";
+        
+        const response = await fetch(`${baseUrl}/health`);
+        if (response.ok) {
+          setBackendStatus('connected');
+          // Hide status message after 3 seconds if connected
+          setTimeout(() => setShowStatus(false), 3000);
+        } else {
+          setBackendStatus('disconnected');
+        }
+      } catch (error) {
+        console.log('Backend not available, using demo videos');
+        setBackendStatus('disconnected');
+      }
+    };
+
+    checkBackendConnection();
+  }, []);
+
+  // Use demo video if backend is down and video not found
+  const displayVideo = video || videos[0]; // fallback to first video
+
+  if (!displayVideo) {
     notFound();
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Backend Status Notification */}
+      {showStatus && (
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 ${
+          backendStatus === 'connected' ? 'bg-green-500 text-white' :
+          backendStatus === 'disconnected' ? 'bg-orange-500 text-white' :
+          'bg-blue-500 text-white'
+        }`}>
+          <div className="flex items-center gap-2">
+            {backendStatus === 'connected' && (
+              <>
+                <span className="text-xl">✅</span>
+                <span>Backend Connected</span>
+                <span className="text-sm opacity-75">(Using live data from originvideo.duckdns.org)</span>
+              </>
+            )}
+            {backendStatus === 'disconnected' && (
+              <>
+                <span className="text-xl">🎬</span>
+                <span>Offline Mode</span>
+                <span className="text-sm opacity-75">(Using demo videos)</span>
+              </>
+            )}
+            {backendStatus === 'checking' && (
+              <>
+                <span className="text-xl animate-spin">⟳</span>
+                <span>Checking connection...</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Simple Header */}
       <header className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <Link href="/" className="text-2xl font-bold text-[#e11d48]">
             🎬 Origin
           </Link>
+          {backendStatus === 'connected' && (
+            <span className="ml-4 text-sm text-green-600 font-medium">
+              Live Data Connected
+            </span>
+          )}
         </div>
       </header>
 
@@ -93,7 +160,7 @@ export default function VideoPage({ params }: VideoPageProps) {
               {/* Video Player */}
               <div className="bg-black rounded-lg overflow-hidden aspect-video mb-4">
                 <video
-                  src={video.videoUrl}
+                  src={displayVideo.videoUrl}
                   controls
                   className="w-full h-full"
                   autoPlay
@@ -102,15 +169,15 @@ export default function VideoPage({ params }: VideoPageProps) {
 
               {/* Video Info */}
               <div className="mb-4">
-                <h1 className="text-xl font-bold mb-2">{video.title}</h1>
+                <h1 className="text-xl font-bold mb-2">{displayVideo.title}</h1>
                 <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>{video.views} views • {video.uploadDate}</span>
+                  <span>{displayVideo.views} views • {displayVideo.uploadDate}</span>
                   <div className="flex gap-2">
                     <button className="flex items-center gap-1 px-3 py-1 border rounded hover:bg-gray-50">
-                      <span>👍</span> {video.likes.toLocaleString()}
+                      <span>👍</span> {displayVideo.likes.toLocaleString()}
                     </button>
                     <button className="flex items-center gap-1 px-3 py-1 border rounded hover:bg-gray-50">
-                      <span>👎</span> {video.dislikes}
+                      <span>👎</span> {displayVideo.dislikes}
                     </button>
                   </div>
                 </div>
@@ -126,10 +193,10 @@ export default function VideoPage({ params }: VideoPageProps) {
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <span className="font-medium">{video.creator.name}</span>
-                      {video.creator.isVerified && <span className="text-blue-500">✓</span>}
+                      <span className="font-medium">{displayVideo.creator.name}</span>
+                      {displayVideo.creator.isVerified && <span className="text-blue-500">✓</span>}
                     </div>
-                    <span className="text-sm text-gray-600">{video.creator.subscribers}</span>
+                    <span className="text-sm text-gray-600">{displayVideo.creator.subscribers}</span>
                   </div>
                 </div>
                 <button className="px-4 py-2 bg-[#e11d48] text-white rounded-full hover:bg-[#be123c] transition-colors">
@@ -138,16 +205,16 @@ export default function VideoPage({ params }: VideoPageProps) {
               </div>
 
               {/* Description */}
-              {video.description && (
+              {displayVideo.description && (
                 <div className="p-3 bg-white rounded-lg mb-4 border">
-                  <p className="text-gray-700 whitespace-pre-wrap">{video.description}</p>
+                  <p className="text-gray-700 whitespace-pre-wrap">{displayVideo.description}</p>
                 </div>
               )}
 
               {/* Tags */}
-              {video.tags && video.tags.length > 0 && (
+              {displayVideo.tags && displayVideo.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {video.tags.map((tag, index) => (
+                  {displayVideo.tags.map((tag, index) => (
                     <span
                       key={index}
                       className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full"
@@ -159,7 +226,7 @@ export default function VideoPage({ params }: VideoPageProps) {
               )}
 
               {/* Rebel Content Badge */}
-              {video.isRebelContent && (
+              {displayVideo.isRebelContent && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
                   <div className="flex items-center gap-2 text-red-700">
                     <span className="text-lg">⚠️</span>
@@ -177,7 +244,7 @@ export default function VideoPage({ params }: VideoPageProps) {
               <div className="sticky top-6">
                 <h3 className="font-medium mb-4 bg-white p-3 rounded-lg border">Related Videos</h3>
                 <div className="space-y-3">
-                  {videos.filter(v => v.id !== video.id).map((relatedVideo) => (
+                  {videos.filter(v => v.id !== displayVideo.id).map((relatedVideo) => (
                     <Link
                       key={relatedVideo.id}
                       href={`/watch/${relatedVideo.id}`}
