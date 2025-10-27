@@ -2,6 +2,9 @@
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
+# Note: This is the Fly.io backup deployment
+# Primary deployment runs on: https://originvideo.duckdns.org (162.195.168.34:8080)
+#
 
 app = 'origin-backend-misty-shape-4040'
 primary_region = 'ord'

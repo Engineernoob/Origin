@@ -16,11 +16,18 @@ Set these in your Vercel project settings:
 
 ### Examples
 
-#### DuckDNS Setup
+#### DuckDNS Setup (Origin Video)
 ```
-BACKEND_URL=https://your-subdomain.duckdns.org
-NEXT_PUBLIC_BACKEND_URL=https://your-subdomain.duckdns.org
-NEXT_PUBLIC_API_BASE=https://your-subdomain.duckdns.org
+BACKEND_URL=https://originvideo.duckdns.org
+NEXT_PUBLIC_BACKEND_URL=https://originvideo.duckdns.org
+NEXT_PUBLIC_API_BASE=https://originvideo.duckdns.org
+```
+
+#### Direct IP Access (Backup)
+```
+BACKEND_URL=http://162.195.168.34:8080
+NEXT_PUBLIC_BACKEND_URL=http://162.195.168.34:8080
+NEXT_PUBLIC_API_BASE=http://162.195.168.34:8080
 ```
 
 #### Fly.io Setup

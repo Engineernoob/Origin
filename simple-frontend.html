@@ -79,7 +79,10 @@
 
     <script>
         // API Configuration
-        const API_BASE = 'https://origin-backend-misty-shape-4040.fly.dev';
+        const API_BASE = 'https://originvideo.duckdns.org';
+        
+        // Backup direct IP access
+        const API_BACKUP = 'http://162.195.168.34:8080';
         
         // Video data structure with fallback demo videos
         const demoVideos = [
@@ -214,15 +217,24 @@
             grid.style.display = 'grid';
         }
 
-        // Try to load from API first, fallback to demo videos
+        // Try to load from API first, then backup, fallback to demo videos
         fetch(`${API_BASE}/api/videos`)
             .then(response => response.json())
             .then(videos => {
-                console.log('Loaded videos from API:', videos);
+                console.log('Loaded videos from primary API:', videos);
                 renderVideos(videos);
             })
             .catch(error => {
-                console.log('API not available, using demo videos:', error);
+                console.log('Primary API not available, trying backup:', error);
+                return fetch(`${API_BACKUP}/api/videos`)
+                    .then(response => response.json())
+                    .then(videos => {
+                        console.log('Loaded videos from backup API:', videos);
+                        renderVideos(videos);
+                    });
+            })
+            .catch(error => {
+                console.log('Both APIs unavailable, using demo videos:', error);
                 renderVideos(demoVideos);
             });
     </script>
