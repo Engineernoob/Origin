@@ -1,120 +1,103 @@
-"use client";
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Header } from "../../components/Header";
-import { Sidebar } from "../../components/Sidebar";
-import { ErrorBoundary } from "../../components/ErrorBoundary";
-import { RelatedVideos } from "../../components/RelatedVideos";
+// Demo video data
+const videos = [
+  {
+    id: '1',
+    title: "Big Buck Bunny",
+    description: "A large and lovable rabbit deals with three tiny rodents.",
+    thumbnail: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    views: "2.5M views",
+    likes: 25430,
+    dislikes: 123,
+    uploadDate: "Jan 15, 2024",
+    creator: {
+      name: "Blender Foundation",
+      subscribers: "1.2M subscribers",
+      isVerified: true
+    },
+    isRebelContent: false,
+    tags: ["animation", "short film", "open source"]
+  },
+  {
+    id: '2',
+    title: "Elephant Dream",
+    description: "Two characters find a mysterious elephant.",
+    thumbnail: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg",
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    views: "1.8M views",
+    likes: 18320,
+    dislikes: 89,
+    uploadDate: "Feb 10, 2024",
+    creator: {
+      name: "Blender Institute",
+      subscribers: "850K subscribers",
+      isVerified: true
+    },
+    isRebelContent: false,
+    tags: ["animation", "fantasy", "blender"]
+  },
+  {
+    id: '3',
+    title: "Sintel",
+    description: "A young woman becomes a warrior to find her dragon.",
+    thumbnail: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg",
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+    views: "3.4M views",
+    likes: 34210,
+    dislikes: 156,
+    uploadDate: "Mar 5, 2024",
+    creator: {
+      name: "Blender Foundation",
+      subscribers: "1.2M subscribers",
+      isVerified: true
+    },
+    isRebelContent: false,
+    tags: ["animation", "adventure", "dragon"]
+  }
+];
 
-interface VideoDetails {
-  videoUrl: string;
-  title: string;
-  creator: {
-    name: string;
-    avatar?: string;
-    subscribers: string;
-    isVerified: boolean;
-  };
-  views: string;
-  likes: number;
-  dislikes: number;
-  uploadDate: string;
-  description: string;
-  isRebelContent?: boolean;
-  tags?: string[];
+// Generate static params for static export
+export async function generateStaticParams() {
+  return videos.map(video => ({
+    id: video.id
+  }));
 }
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ||
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ||
-  "https://originvideo.duckdns.org";
+interface VideoPageProps {
+  params: { id: string };
+}
 
-export default function WatchPage() {
-  const params = useParams();
-  const router = useRouter();
-  const [video, setVideo] = useState<VideoDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function VideoPage({ params }: VideoPageProps) {
+  const video = videos.find(v => v.id === params.id);
 
-  useEffect(() => {
-    if (!params?.id) return;
-
-    const fetchVideo = async () => {
-      try {
-        const response = await fetch(`${API_BASE}/videos/${params.id}`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch video: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setVideo(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load video");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchVideo();
-  }, [params.id]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <ErrorBoundary>
-          <Header />
-        </ErrorBoundary>
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-            <p>Loading video...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !video) {
-    return (
-      <div className="min-h-screen bg-white">
-        <ErrorBoundary>
-          <Header />
-        </ErrorBoundary>
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Video not found</h1>
-            <p className="text-gray-600 mb-6">{error || "This video doesn't exist or has been removed"}</p>
-            <button
-              onClick={() => router.push("/")}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Go back home
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  if (!video) {
+    notFound();
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <ErrorBoundary>
-        <Header />
-      </ErrorBoundary>
+    <div className="min-h-screen bg-gray-50">
+      {/* Simple Header */}
+      <header className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <Link href="/" className="text-2xl font-bold text-[#e11d48]">
+            🎬 Origin
+          </Link>
+        </div>
+      </header>
+
       <div className="flex">
-        <ErrorBoundary>
-          <Sidebar isOpen={false} />
-        </ErrorBoundary>
-        <main className="flex-1 p-6">
+        {/* Main Content */}
+        <main className="flex-1 max-w-6xl mx-auto p-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Video Player Section */}
             <div className="lg:col-span-2">
               {/* Video Player */}
               <div className="bg-black rounded-lg overflow-hidden aspect-video mb-4">
                 <video
-                  src={`${API_BASE}${video.videoUrl}`}
+                  src={video.videoUrl}
                   controls
                   className="w-full h-full"
                   autoPlay
@@ -128,7 +111,7 @@ export default function WatchPage() {
                   <span>{video.views} views • {video.uploadDate}</span>
                   <div className="flex gap-2">
                     <button className="flex items-center gap-1 px-3 py-1 border rounded hover:bg-gray-50">
-                      <span>👍</span> {video.likes}
+                      <span>👍</span> {video.likes.toLocaleString()}
                     </button>
                     <button className="flex items-center gap-1 px-3 py-1 border rounded hover:bg-gray-50">
                       <span>👎</span> {video.dislikes}
@@ -138,37 +121,29 @@ export default function WatchPage() {
               </div>
 
               {/* Creator Info */}
-              <div className="flex items-center justify-between p-3 border rounded-lg mb-4">
+              <div className="flex items-center justify-between p-3 border rounded-lg mb-4 bg-white">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                    {video.creator.avatar ? (
-                      <img
-                        src={video.creator.avatar}
-                        alt={video.creator.name}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-lg font-semibold">
-                        {video.creator.name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
+                    <span className="text-lg font-semibold">
+                      {video.creator.name.charAt(0).toUpperCase()}
+                    </span>
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
                       <span className="font-medium">{video.creator.name}</span>
                       {video.creator.isVerified && <span className="text-blue-500">✓</span>}
                     </div>
-                    <span className="text-sm text-gray-600">{video.creator.subscribers} subscribers</span>
+                    <span className="text-sm text-gray-600">{video.creator.subscribers}</span>
                   </div>
                 </div>
-                <button className="px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors">
+                <button className="px-4 py-2 bg-[#e11d48] text-white rounded-full hover:bg-[#be123c] transition-colors">
                   Subscribe
                 </button>
               </div>
 
               {/* Description */}
               {video.description && (
-                <div className="p-3 bg-gray-50 rounded-lg mb-4">
+                <div className="p-3 bg-white rounded-lg mb-4 border">
                   <p className="text-gray-700 whitespace-pre-wrap">{video.description}</p>
                 </div>
               )}
@@ -179,7 +154,7 @@ export default function WatchPage() {
                   {video.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 cursor-pointer"
+                      className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full"
                     >
                       {tag}
                     </span>
@@ -204,9 +179,49 @@ export default function WatchPage() {
             {/* Sidebar with Related Videos */}
             <div className="lg:col-span-1">
               <div className="sticky top-6">
-                <ErrorBoundary>
-                  <RelatedVideos videoId={params.id as string} />
-                </ErrorBoundary>
+                <h3 className="font-medium mb-4 bg-white p-3 rounded-lg border">Related Videos</h3>
+                <div className="space-y-3">
+                  {videos.filter(v => v.id !== video.id).map((relatedVideo) => (
+                    <Link
+                      key={relatedVideo.id}
+                      href={`/watch/${relatedVideo.id}`}
+                      className="flex gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors block bg-white border rounded"
+                    >
+                      {/* Thumbnail */}
+                      <div className="w-40 h-24 flex-shrink-0">
+                        <div className="relative w-full h-full rounded overflow-hidden">
+                          <img
+                            src={relatedVideo.thumbnail}
+                            alt={relatedVideo.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm line-clamp-2 mb-1 leading-tight">
+                          {relatedVideo.title}
+                        </h4>
+                        
+                        {/* Channel */}
+                        <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
+                          <span>{relatedVideo.creator.name}</span>
+                          {relatedVideo.creator.isVerified && (
+                            <span className="text-blue-500">✓</span>
+                          )}
+                        </div>
+
+                        {/* Stats */}
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <span>{relatedVideo.views}</span>
+                          <span>•</span>
+                          <span>{relatedVideo.uploadDate}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

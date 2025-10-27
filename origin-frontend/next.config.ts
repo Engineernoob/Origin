@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Disable image optimization for static export
   images: { 
+    unoptimized: true,
     domains: [
       "images.unsplash.com",
       "picsum.photos", 
@@ -15,18 +17,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || "http://localhost:8080";
-    return [
-      { 
-        source: "/api/:path*", 
-        destination: `${backendUrl}/api/:path*`
-      },
-    ];
-  },
+  // Enable static export for serving with simple HTTP server
+  output: 'export',
+  // Disable rewrites since we're using static export
+  trailingSlash: true,
   env: {
     CUSTOM_API_URL: process.env.CUSTOM_API_URL,
     BACKEND_URL: process.env.BACKEND_URL,
+    NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL,
+    NEXT_PUBLIC_API_BASE: process.env.NEXT_PUBLIC_API_BASE,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
   eslint: {
     ignoreDuringBuilds: true,
@@ -34,6 +34,10 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Base path for static assets
+  basePath: '',
+  // Asset prefix for CDN
+  assetPrefix: '',
 };
 
 export default nextConfig;
