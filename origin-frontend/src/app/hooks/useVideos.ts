@@ -18,9 +18,9 @@ function toSearch(params: Params) {
   return usp.toString();
 }
 
-export function useVideo(params: Params) {
+export function useVideos(params: Params) {
   const qs = toSearch(params);
-  const key = qs ? `/api/video?${qs}` : "/api/video";
+  const key = qs ? `/api/videos?${qs}` : "/api/videos";
 
   const { data, error, isLoading, mutate } = useSWR(key, fetcher, {
     revalidateOnFocus: false,

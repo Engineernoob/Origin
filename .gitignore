@@ -1,25 +1,30 @@
-# Environment files
+# Environment variables (NEVER commit secrets)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.example.youtube
+.env.production
 
 # Dependencies
 node_modules/
 */node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Build outputs
 dist/
 build/
 .next/
+.pnpm-store
 
 # Logs
 logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+lerna-debug.log*
 
 # Runtime data
 pids
@@ -29,28 +34,101 @@ pids
 
 # Coverage directory used by tools like istanbul
 coverage/
+.nyc_output/
 
-# nyc test coverage
-.nyc_output
-
-# Uploads
+# Uploads and media files (these should be stored externally in production)
 uploads/
+videos/
+thumbnails/
 *.mp4
 *.mov
 *.avi
 *.mkv
+*.webm
+*.ogg
+*.flv
 
-# IDEs
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
 
-# OS
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Database
+# Database files (production should use external DB)
 *.sqlite
+*.sqlite3
 *.db
-origin-backend/.env.example
+
+# Temporary files
+.temp
+.tmp
+.cache
+
+# Vercel deployment files
+.vercel
+
+# Railway deployment files
+railway.toml
+
+# SSL certificates (never commit!)
+*.pem
+*.key
+*.crt
+*.csr
+
+# Backup files
+*.bak
+*.backup
+
+# Lock files for package managers
+package-lock.json.backup
+yarn.lock.backup
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Environment folders
+.cache/
+.parcel-cache/
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock
+.lock-wscript
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# PM2 logs and config
+ecosystem.config.js
+.pm2/
+
+# Files that could contain sensitive information
+config.json
+secrets.json
+api-keys.txt
+
+# Factory artifacts (system generated)
+.factory/

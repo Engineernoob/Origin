@@ -14,7 +14,7 @@ export default function HomePage() {
           <Sidebar isOpen={false} />
         </ErrorBoundary>
         <ErrorBoundary>
-          <VideoGrid />
+          <VideoGrid useRecommendations={true} />
         </ErrorBoundary>
       </div>
     </div>

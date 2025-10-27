@@ -13,7 +13,7 @@ export class CustomLoggerService implements LoggerService {
         format.timestamp(),
         format.errors({ stack: true }),
         format.json(),
-        format.colorize({ all: true })
+        format.colorize({ all: true }),
       ),
       defaultMeta: {
         service: 'origin-backend',
@@ -23,19 +23,16 @@ export class CustomLoggerService implements LoggerService {
       transports: [
         // Console transport
         new transports.Console({
-          format: format.combine(
-            format.colorize(),
-            format.simple()
-          ),
+          format: format.combine(format.colorize(), format.simple()),
         }),
-        
+
         // File transport for errors
         new transports.File({
           filename: 'logs/error.log',
           level: 'error',
           format: format.json(),
         }),
-        
+
         // File transport for all logs
         new transports.File({
           filename: 'logs/combined.log',
@@ -84,7 +81,12 @@ export class CustomLoggerService implements LoggerService {
     });
   }
 
-  logVideoEvent(event: string, videoId: number, userId?: number, metadata?: any) {
+  logVideoEvent(
+    event: string,
+    videoId: number,
+    userId?: number,
+    metadata?: any,
+  ) {
     this.logger.info('Video Event', {
       event,
       videoId,

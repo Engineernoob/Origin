@@ -9,6 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+.pnpm-store
 
 # testing
 /coverage
@@ -22,20 +23,69 @@
 
 # misc
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 *.pem
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Env files (NEVER commit secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
 
-# vercel
+# Deployment files
 .vercel
+.vercel.json
 
-# typescript
+# Build artifacts
 *.tsbuildinfo
 next-env.d.ts
+
+# Cache
+.cache/
+.eslintcache
+.parcel-cache
+
+# Temporary files
+.temp
+.tmp
+.npm
+
+# OS files
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Security files
+*.key
+*.crt
+*.csr
+secrets.json
+config.json
+
+# PM2 files
+.pm2/
+ecosystem.config.js
+
+# Backup files
+*.bak
+*.backup
+
+# Factory artifacts
+.factory/

@@ -84,27 +84,26 @@ export class MetricsService {
   }
 
   // HTTP Metrics
-  recordHttpRequest(method: string, route: string, statusCode: number, duration: number) {
+  recordHttpRequest(
+    method: string,
+    route: string,
+    statusCode: number,
+    duration: number,
+  ) {
     this.httpRequestDuration
       .labels(method, route, statusCode.toString())
       .observe(duration / 1000);
-    
-    this.httpRequestTotal
-      .labels(method, route, statusCode.toString())
-      .inc();
+
+    this.httpRequestTotal.labels(method, route, statusCode.toString()).inc();
   }
 
   // Video Metrics
   recordVideoView(videoId: string, userId?: string) {
-    this.videoViews
-      .labels(videoId, userId || 'anonymous')
-      .inc();
+    this.videoViews.labels(videoId, userId || 'anonymous').inc();
   }
 
   recordVideoProcessing(quality: string, duration: number) {
-    this.videoProcessingDuration
-      .labels(quality)
-      .observe(duration);
+    this.videoProcessingDuration.labels(quality).observe(duration);
   }
 
   recordVideoUpload(sizeBytes: number) {
@@ -134,13 +133,21 @@ export class MetricsService {
   }
 
   // Custom business metrics
-  async recordCustomMetric(name: string, value: number, labels?: Record<string, string>) {
+  async recordCustomMetric(
+    name: string,
+    value: number,
+    labels?: Record<string, string>,
+  ) {
     // This would be used for custom business metrics
     // that don't fit into the standard categories
   }
 
   // Health check metrics
-  recordHealthCheck(service: string, status: 'healthy' | 'unhealthy', responseTime: number) {
+  recordHealthCheck(
+    service: string,
+    status: 'healthy' | 'unhealthy',
+    responseTime: number,
+  ) {
     const healthGauge = new Gauge({
       name: `health_check_${service}`,
       help: `Health status of ${service}`,

@@ -1,4 +1,10 @@
-import { IsArray, IsBoolean, IsOptional, IsString, IsUrl } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsString,
+  IsUrl,
+} from 'class-validator';
 
 export class CreateVideoDto {
   @IsString() title!: string;

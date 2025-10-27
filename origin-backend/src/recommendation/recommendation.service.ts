@@ -46,7 +46,7 @@ export class RecommendationService {
     } = options;
 
     const cacheKey = `recommendations:${algorithm}:${userId || 'anonymous'}:${videoId || 'none'}:${limit}`;
-    
+
     // Try cache first
     const cached = await this.cacheService.get<number[]>(cacheKey);
     if (cached && cached.length > 0) {
@@ -54,26 +54,42 @@ export class RecommendationService {
         where: { id: In(cached) },
         relations: ['user'],
       });
-      
+
       // Maintain order from cache
-      return cached.map(id => videos.find(v => v.id === id)).filter(Boolean);
+      return cached
+        .map((id) => videos.find((v) => v.id === id))
+        .filter(Boolean);
     }
 
     let videoIds: number[] = [];
 
     switch (algorithm) {
       case 'collaborative':
-        videoIds = await this.getCollaborativeRecommendations(userId, limit, excludeWatched);
+        videoIds = await this.getCollaborativeRecommendations(
+          userId,
+          limit,
+          excludeWatched,
+        );
         break;
       case 'content_based':
-        videoIds = await this.getContentBasedRecommendations(videoId, userId, limit, excludeWatched);
+        videoIds = await this.getContentBasedRecommendations(
+          videoId,
+          userId,
+          limit,
+          excludeWatched,
+        );
         break;
       case 'trending':
         videoIds = await this.getTrendingRecommendations(limit);
         break;
       case 'mixed':
       default:
-        videoIds = await this.getMixedRecommendations(userId, videoId, limit, excludeWatched);
+        videoIds = await this.getMixedRecommendations(
+          userId,
+          videoId,
+          limit,
+          excludeWatched,
+        );
         break;
     }
 
@@ -91,13 +107,15 @@ export class RecommendationService {
     });
 
     // Maintain order
-    return videoIds.map(id => videos.find(v => v.id === id)).filter(Boolean);
+    return videoIds
+      .map((id) => videos.find((v) => v.id === id))
+      .filter(Boolean);
   }
 
   private async getCollaborativeRecommendations(
     userId: number,
     limit: number,
-    excludeWatched: boolean
+    excludeWatched: boolean,
   ): Promise<number[]> {
     if (!userId) {
       return this.getTrendingRecommendations(limit);
@@ -105,23 +123,27 @@ export class RecommendationService {
 
     // Find users with similar viewing patterns
     const userWatchHistory = await this.getUserWatchHistory(userId);
-    
+
     if (userWatchHistory.length === 0) {
       return this.getTrendingRecommendations(limit);
     }
 
     // Find other users who watched similar videos
-    const similarUsers = await this.findSimilarUsers(userId, userWatchHistory, 50);
+    const similarUsers = await this.findSimilarUsers(
+      userId,
+      userWatchHistory,
+      50,
+    );
 
     // Get videos watched by similar users but not by current user
     const recommendations: VideoScore[] = [];
-    
+
     for (const similarUser of similarUsers) {
       const theirHistory = await this.getUserWatchHistory(similarUser.userId);
-      
+
       for (const videoId of theirHistory) {
         if (!userWatchHistory.includes(videoId)) {
-          const existing = recommendations.find(r => r.videoId === videoId);
+          const existing = recommendations.find((r) => r.videoId === videoId);
           if (existing) {
             existing.score += similarUser.similarity;
           } else {
@@ -139,14 +161,14 @@ export class RecommendationService {
     return recommendations
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
-      .map(r => r.videoId);
+      .map((r) => r.videoId);
   }
 
   private async getContentBasedRecommendations(
     videoId: number,
     userId: number,
     limit: number,
-    excludeWatched: boolean
+    excludeWatched: boolean,
   ): Promise<number[]> {
     if (!videoId) {
       return this.getPersonalizedRecommendations(userId, limit, excludeWatched);
@@ -166,7 +188,7 @@ export class RecommendationService {
 
     // 1. Same creator's other videos
     const creatorVideos = await this.videoRepository.find({
-      where: { 
+      where: {
         userId: baseVideo.userId,
         isPublic: true,
       },
@@ -174,7 +196,7 @@ export class RecommendationService {
       order: { views: 'DESC' },
     });
 
-    creatorVideos.forEach(video => {
+    creatorVideos.forEach((video) => {
       if (video.id !== videoId) {
         recommendations.push({
           videoId: video.id,
@@ -197,8 +219,11 @@ export class RecommendationService {
         .take(limit)
         .getMany();
 
-      similarTitleVideos.forEach(video => {
-        const titleSimilarity = this.calculateTextSimilarity(baseVideo.title, video.title);
+      similarTitleVideos.forEach((video) => {
+        const titleSimilarity = this.calculateTextSimilarity(
+          baseVideo.title,
+          video.title,
+        );
         recommendations.push({
           videoId: video.id,
           score: titleSimilarity * 0.6,
@@ -210,7 +235,7 @@ export class RecommendationService {
     // Remove duplicates and sort by score
     const uniqueRecommendations = recommendations
       .reduce((acc, curr) => {
-        const existing = acc.find(r => r.videoId === curr.videoId);
+        const existing = acc.find((r) => r.videoId === curr.videoId);
         if (existing) {
           existing.score = Math.max(existing.score, curr.score);
         } else {
@@ -221,40 +246,42 @@ export class RecommendationService {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
 
-    return uniqueRecommendations.map(r => r.videoId);
+    return uniqueRecommendations.map((r) => r.videoId);
   }
 
   private async getTrendingRecommendations(limit: number): Promise<number[]> {
     // Get trending videos from last 24 hours
     const startDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
+
     const trending = await this.analyticsRepository
       .createQueryBuilder('analytics')
       .select(['videoId', 'COUNT(*) as score'])
       .where('timestamp >= :startDate', { startDate })
-      .andWhere('eventType IN (:...events)', { events: ['view', 'like', 'share'] })
+      .andWhere('eventType IN (:...events)', {
+        events: ['view', 'like', 'share'],
+      })
       .groupBy('videoId')
       .orderBy('score', 'DESC')
       .limit(limit)
       .getRawMany();
 
-    return trending.map(t => parseInt(t.videoId));
+    return trending.map((t) => parseInt(t.videoId));
   }
 
   private async getMixedRecommendations(
     userId: number,
     videoId: number,
     limit: number,
-    excludeWatched: boolean
+    excludeWatched: boolean,
   ): Promise<number[]> {
     const recommendations: number[] = [];
-    
+
     // 40% collaborative filtering
     if (userId) {
       const collaborative = await this.getCollaborativeRecommendations(
-        userId, 
-        Math.floor(limit * 0.4), 
-        excludeWatched
+        userId,
+        Math.floor(limit * 0.4),
+        excludeWatched,
       );
       recommendations.push(...collaborative);
     }
@@ -265,22 +292,26 @@ export class RecommendationService {
         videoId,
         userId,
         Math.floor(limit * 0.3),
-        excludeWatched
+        excludeWatched,
       );
       recommendations.push(...contentBased);
     }
 
     // 30% trending
-    const trending = await this.getTrendingRecommendations(Math.floor(limit * 0.3));
+    const trending = await this.getTrendingRecommendations(
+      Math.floor(limit * 0.3),
+    );
     recommendations.push(...trending);
 
     // Remove duplicates and fill up to limit
     const unique = [...new Set(recommendations)];
-    
+
     if (unique.length < limit) {
       // Fill with more trending if needed
-      const moreTrending = await this.getTrendingRecommendations(limit - unique.length);
-      unique.push(...moreTrending.filter(id => !unique.includes(id)));
+      const moreTrending = await this.getTrendingRecommendations(
+        limit - unique.length,
+      );
+      unique.push(...moreTrending.filter((id) => !unique.includes(id)));
     }
 
     return unique.slice(0, limit);
@@ -289,7 +320,7 @@ export class RecommendationService {
   private async getPersonalizedRecommendations(
     userId: number,
     limit: number,
-    excludeWatched: boolean
+    excludeWatched: boolean,
   ): Promise<number[]> {
     if (!userId) {
       return this.getTrendingRecommendations(limit);
@@ -297,7 +328,10 @@ export class RecommendationService {
 
     // Get user's watch history and preferences
     const userHistory = await this.getUserWatchHistory(userId);
-    const userPreferences = await this.analyzeUserPreferences(userId, userHistory);
+    const userPreferences = await this.analyzeUserPreferences(
+      userId,
+      userHistory,
+    );
 
     // Find videos matching user preferences
     let query = this.videoRepository
@@ -305,13 +339,15 @@ export class RecommendationService {
       .where('video.isPublic = :isPublic', { isPublic: true });
 
     if (excludeWatched && userHistory.length > 0) {
-      query = query.andWhere('video.id NOT IN (:...watchedIds)', { watchedIds: userHistory });
+      query = query.andWhere('video.id NOT IN (:...watchedIds)', {
+        watchedIds: userHistory,
+      });
     }
 
     // Apply preference filters
     if (userPreferences.preferredCreators.length > 0) {
-      query = query.andWhere('video.userId IN (:...creators)', { 
-        creators: userPreferences.preferredCreators 
+      query = query.andWhere('video.userId IN (:...creators)', {
+        creators: userPreferences.preferredCreators,
       });
     }
 
@@ -320,13 +356,13 @@ export class RecommendationService {
       .take(limit)
       .getMany();
 
-    return personalizedVideos.map(v => v.id);
+    return personalizedVideos.map((v) => v.id);
   }
 
   private async getUserWatchHistory(userId: number): Promise<number[]> {
     const cacheKey = `user_history:${userId}`;
     const cached = await this.cacheService.get<number[]>(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
@@ -340,18 +376,18 @@ export class RecommendationService {
       .limit(100)
       .getRawMany();
 
-    const videoIds = history.map(h => parseInt(h.videoId)).filter(Boolean);
-    
+    const videoIds = history.map((h) => parseInt(h.videoId)).filter(Boolean);
+
     // Cache for 1 hour
     await this.cacheService.set(cacheKey, videoIds, 3600);
-    
+
     return videoIds;
   }
 
   private async findSimilarUsers(
-    userId: number, 
-    userHistory: number[], 
-    limit: number
+    userId: number,
+    userHistory: number[],
+    limit: number,
   ): Promise<{ userId: number; similarity: number }[]> {
     // Find users who have watched similar videos
     const similarUsers = await this.analyticsRepository
@@ -361,18 +397,23 @@ export class RecommendationService {
       .andWhere('userId != :userId', { userId })
       .andWhere('eventType = :eventType', { eventType: 'view' })
       .groupBy('userId')
-      .having('COUNT(*) >= :minCommon', { minCommon: Math.min(3, userHistory.length * 0.1) })
+      .having('COUNT(*) >= :minCommon', {
+        minCommon: Math.min(3, userHistory.length * 0.1),
+      })
       .orderBy('commonVideos', 'DESC')
       .limit(limit)
       .getRawMany();
 
-    return similarUsers.map(user => ({
+    return similarUsers.map((user) => ({
       userId: parseInt(user.userId),
       similarity: parseInt(user.commonVideos) / userHistory.length,
     }));
   }
 
-  private async analyzeUserPreferences(userId: number, history: number[]): Promise<any> {
+  private async analyzeUserPreferences(
+    userId: number,
+    history: number[],
+  ): Promise<any> {
     if (history.length === 0) {
       return { preferredCreators: [], preferredCategories: [] };
     }
@@ -390,33 +431,53 @@ export class RecommendationService {
       .getRawMany();
 
     return {
-      preferredCreators: creatorStats.map(c => parseInt(c.creatorId)),
+      preferredCreators: creatorStats.map((c) => parseInt(c.creatorId)),
       preferredCategories: [], // Would need category data
     };
   }
 
   private extractKeywords(text: string): string[] {
     // Simple keyword extraction
-    const commonWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
+    const commonWords = [
+      'the',
+      'a',
+      'an',
+      'and',
+      'or',
+      'but',
+      'in',
+      'on',
+      'at',
+      'to',
+      'for',
+      'of',
+      'with',
+      'by',
+    ];
     return text
       .toLowerCase()
       .split(/\s+/)
-      .filter(word => word.length > 2 && !commonWords.includes(word))
+      .filter((word) => word.length > 2 && !commonWords.includes(word))
       .slice(0, 5);
   }
 
   private calculateTextSimilarity(text1: string, text2: string): number {
     const words1 = new Set(text1.toLowerCase().split(/\s+/));
     const words2 = new Set(text2.toLowerCase().split(/\s+/));
-    
-    const intersection = new Set([...words1].filter(word => words2.has(word)));
+
+    const intersection = new Set(
+      [...words1].filter((word) => words2.has(word)),
+    );
     const union = new Set([...words1, ...words2]);
-    
+
     return intersection.size / union.size;
   }
 
   // ML-Enhanced Recommendations
-  private async enhanceWithMLPredictions(videoIds: number[], userId?: number): Promise<number[]> {
+  private async enhanceWithMLPredictions(
+    videoIds: number[],
+    userId?: number,
+  ): Promise<number[]> {
     try {
       const videos = await this.videoRepository.find({
         where: { id: In(videoIds) },
@@ -447,8 +508,12 @@ export class RecommendationService {
         };
 
         try {
-          const prediction = await this.mlTrainingService.predictVideoPerformance(features, 'viral_prediction');
-          
+          const prediction =
+            await this.mlTrainingService.predictVideoPerformance(
+              features,
+              'viral_prediction',
+            );
+
           enhancedVideos.push({
             videoId: video.id,
             originalScore: 1, // Base score
@@ -471,8 +536,7 @@ export class RecommendationService {
       // Sort by combined ML score and return video IDs
       return enhancedVideos
         .sort((a, b) => b.combinedScore - a.combinedScore)
-        .map(item => item.videoId);
-
+        .map((item) => item.videoId);
     } catch (error) {
       this.logger.error('Error enhancing recommendations with ML:', error);
       return videoIds; // Return original order if ML enhancement fails
@@ -480,7 +544,10 @@ export class RecommendationService {
   }
 
   private calculateViewsPerHour(video: any): number {
-    const hoursOnline = Math.max(1, (Date.now() - video.createdAt.getTime()) / (1000 * 60 * 60));
+    const hoursOnline = Math.max(
+      1,
+      (Date.now() - video.createdAt.getTime()) / (1000 * 60 * 60),
+    );
     return video.views / hoursOnline;
   }
 
@@ -491,13 +558,22 @@ export class RecommendationService {
     }
 
     this.logger.log('Starting recommendation model training with YouTube data');
-    
+
     try {
       // Train all model types
-      await this.mlTrainingService.trainRecommendationModel('viral_prediction', 5000);
-      await this.mlTrainingService.trainRecommendationModel('engagement_prediction', 5000);
-      await this.mlTrainingService.trainRecommendationModel('retention_prediction', 5000);
-      
+      await this.mlTrainingService.trainRecommendationModel(
+        'viral_prediction',
+        5000,
+      );
+      await this.mlTrainingService.trainRecommendationModel(
+        'engagement_prediction',
+        5000,
+      );
+      await this.mlTrainingService.trainRecommendationModel(
+        'retention_prediction',
+        5000,
+      );
+
       this.logger.log('Recommendation model training completed');
     } catch (error) {
       this.logger.error('Error training recommendation models:', error);

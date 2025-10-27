@@ -10,7 +10,13 @@ export interface ModerationResult {
   reasons: string[];
   suggestedActions: string[];
   flaggedContent?: {
-    type: 'profanity' | 'spam' | 'harassment' | 'adult' | 'violence' | 'copyright';
+    type:
+      | 'profanity'
+      | 'spam'
+      | 'harassment'
+      | 'adult'
+      | 'violence'
+      | 'copyright';
     severity: 'low' | 'medium' | 'high';
     details: string;
   }[];
@@ -27,7 +33,7 @@ export interface ContentModerationRequest {
 @Injectable()
 export class ModerationService {
   private readonly logger = new Logger(ModerationService.name);
-  
+
   // Profanity word lists (in production, this would be more comprehensive)
   private readonly profanityPatterns = [
     /\b(fuck|shit|damn|bitch|asshole|cunt|whore|slut)\b/gi,
@@ -53,13 +59,15 @@ export class ModerationService {
     private cacheService: CacheService,
   ) {}
 
-  async moderateContent(request: ContentModerationRequest): Promise<ModerationResult> {
+  async moderateContent(
+    request: ContentModerationRequest,
+  ): Promise<ModerationResult> {
     const { type, content, userId, videoId } = request;
 
     try {
       // Check user's moderation history
       const userHistory = await this.getUserModerationHistory(userId);
-      
+
       // Run multiple moderation checks in parallel
       const [
         profanityResult,
@@ -163,10 +171,9 @@ export class ModerationService {
       });
 
       return result;
-
     } catch (error) {
       this.logger.error('Error in content moderation:', error);
-      
+
       // In case of error, allow content but flag for manual review
       return {
         isAllowed: true,
@@ -277,7 +284,10 @@ export class ModerationService {
     };
   }
 
-  private checkContentLength(content: string, type: string): { valid: boolean; reason?: string } {
+  private checkContentLength(
+    content: string,
+    type: string,
+  ): { valid: boolean; reason?: string } {
     const limits = {
       comment: { min: 1, max: 2000 },
       title: { min: 3, max: 100 },
@@ -288,27 +298,38 @@ export class ModerationService {
     const limit = limits[type] || { min: 0, max: Infinity };
 
     if (content.length < limit.min) {
-      return { valid: false, reason: `Content too short (minimum ${limit.min} characters)` };
+      return {
+        valid: false,
+        reason: `Content too short (minimum ${limit.min} characters)`,
+      };
     }
 
     if (content.length > limit.max) {
-      return { valid: false, reason: `Content too long (maximum ${limit.max} characters)` };
+      return {
+        valid: false,
+        reason: `Content too long (maximum ${limit.max} characters)`,
+      };
     }
 
     return { valid: true };
   }
 
-  private async checkRateLimit(userId?: number, type?: string): Promise<{ allowed: boolean }> {
+  private async checkRateLimit(
+    userId?: number,
+    type?: string,
+  ): Promise<{ allowed: boolean }> {
     if (!userId) return { allowed: true };
 
     const key = `rate_limit:${type}:${userId}`;
     const limit = type === 'comment' ? 60 : 10; // Comments: 60/hour, Others: 10/hour
-    
+
     const allowed = await this.cacheService.checkRateLimit(key, limit, 3600);
     return { allowed };
   }
 
-  private async getUserModerationHistory(userId?: number): Promise<{ violations: number; score: number }> {
+  private async getUserModerationHistory(
+    userId?: number,
+  ): Promise<{ violations: number; score: number }> {
     if (!userId) return { violations: 0, score: 1 };
 
     const cacheKey = `moderation_history:${userId}`;
@@ -316,7 +337,7 @@ export class ModerationService {
     if (cached) return cached;
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    
+
     const violations = await this.moderationRepository.count({
       where: {
         userId,
@@ -335,7 +356,7 @@ export class ModerationService {
   private async getRecentSubmissions(userId: number): Promise<number> {
     const key = `submissions:${userId}`;
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    
+
     // This would check recent submission timestamps
     // For now, return 0 as placeholder
     return 0;
@@ -371,7 +392,7 @@ export class ModerationService {
         'action.action',
         'action.contentType',
         'COUNT(*) as count',
-        'AVG(action.confidence) as avgConfidence'
+        'AVG(action.confidence) as avgConfidence',
       ])
       .where('action.createdAt >= :startDate', { startDate })
       .groupBy('action.action, action.contentType')

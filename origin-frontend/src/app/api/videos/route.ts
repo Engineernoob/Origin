@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   const pageToken = url.searchParams.get("pageToken") ?? "";
   const maxResults = url.searchParams.get("maxResults") ?? "24";
 
-  const upstream = new URL(`${ORIGIN_API_BASE}/youtube/search`);
+  const upstream = new URL(`${ORIGIN_API_BASE}/videos`);
   if (q) upstream.searchParams.set("q", q);
   if (pageToken) upstream.searchParams.set("pageToken", pageToken);
   if (maxResults) upstream.searchParams.set("maxResults", maxResults);
@@ -21,7 +21,8 @@ export async function GET(req: Request) {
     }
     const data = await res.json();
     return NextResponse.json(data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message ?? "Upstream error" }, { status: 502 });
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error('Unknown error');
+    return NextResponse.json({ error: error.message ?? "Upstream error" }, { status: 502 });
   }
 }

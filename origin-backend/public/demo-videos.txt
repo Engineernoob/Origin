@@ -1,0 +1,19 @@
+# Demo Videos for Origin Platform
+
+These are placeholder video URLs for testing. In production, you would host actual video files.
+
+## Sample Video URLs (for testing):
+- https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4
+- https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4
+- https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4
+- https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4
+- https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4
+
+## Thumbnail URLs:
+- https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg
+- https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg
+- https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg
+- https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerEscapes.jpg
+- https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg
+
+These are Google's sample videos for testing - they work with this platform!

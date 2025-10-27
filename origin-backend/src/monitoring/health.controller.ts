@@ -52,10 +52,22 @@ export class HealthController {
     ]);
 
     const services = {
-      database: checks[0].status === 'fulfilled' ? checks[0].value : this.createFailedHealth('Database check failed'),
-      redis: checks[1].status === 'fulfilled' ? checks[1].value : this.createFailedHealth('Redis check failed'),
-      videoProcessing: checks[2].status === 'fulfilled' ? checks[2].value : this.createFailedHealth('Video processing check failed'),
-      storage: checks[3].status === 'fulfilled' ? checks[3].value : this.createFailedHealth('Storage check failed'),
+      database:
+        checks[0].status === 'fulfilled'
+          ? checks[0].value
+          : this.createFailedHealth('Database check failed'),
+      redis:
+        checks[1].status === 'fulfilled'
+          ? checks[1].value
+          : this.createFailedHealth('Redis check failed'),
+      videoProcessing:
+        checks[2].status === 'fulfilled'
+          ? checks[2].value
+          : this.createFailedHealth('Video processing check failed'),
+      storage:
+        checks[3].status === 'fulfilled'
+          ? checks[3].value
+          : this.createFailedHealth('Storage check failed'),
     };
 
     const overallStatus = this.determineOverallStatus(Object.values(services));
@@ -105,9 +117,13 @@ export class HealthController {
     try {
       await this.videoRepository.query('SELECT 1');
       const responseTime = Date.now() - start;
-      
-      this.metricsService.recordHealthCheck('database', 'healthy', responseTime);
-      
+
+      this.metricsService.recordHealthCheck(
+        'database',
+        'healthy',
+        responseTime,
+      );
+
       return {
         status: responseTime < 1000 ? 'healthy' : 'degraded',
         responseTime,
@@ -118,8 +134,12 @@ export class HealthController {
       };
     } catch (error) {
       const responseTime = Date.now() - start;
-      this.metricsService.recordHealthCheck('database', 'unhealthy', responseTime);
-      
+      this.metricsService.recordHealthCheck(
+        'database',
+        'unhealthy',
+        responseTime,
+      );
+
       return {
         status: 'unhealthy',
         responseTime,
@@ -136,18 +156,18 @@ export class HealthController {
     try {
       const testKey = 'health_check';
       const testValue = Date.now().toString();
-      
+
       await this.cacheService.set(testKey, testValue, 10);
       const retrieved = await this.cacheService.get(testKey);
       await this.cacheService.del(testKey);
-      
+
       if (retrieved !== testValue) {
         throw new Error('Redis value mismatch');
       }
 
       const responseTime = Date.now() - start;
       this.metricsService.recordHealthCheck('redis', 'healthy', responseTime);
-      
+
       return {
         status: responseTime < 500 ? 'healthy' : 'degraded',
         responseTime,
@@ -159,7 +179,7 @@ export class HealthController {
     } catch (error) {
       const responseTime = Date.now() - start;
       this.metricsService.recordHealthCheck('redis', 'unhealthy', responseTime);
-      
+
       return {
         status: 'unhealthy',
         responseTime,
@@ -177,21 +197,21 @@ export class HealthController {
       // Check if video processing queue is accessible
       // This would check Bull queue health
       // const queueHealth = await this.videoProcessingService.getQueueHealth();
-      
+
       const responseTime = Date.now() - start;
-      
+
       return {
         status: 'healthy',
         responseTime,
         lastChecked: new Date().toISOString(),
         details: {
           queueSize: 0, // Would get actual queue size
-          workers: 1,   // Would get actual worker count
+          workers: 1, // Would get actual worker count
         },
       };
     } catch (error) {
       const responseTime = Date.now() - start;
-      
+
       return {
         status: 'unhealthy',
         responseTime,
@@ -208,21 +228,21 @@ export class HealthController {
     try {
       const fs = await import('fs/promises');
       const path = await import('path');
-      
+
       const uploadPath = process.env.UPLOAD_PATH || './uploads';
       const testFile = path.join(uploadPath, 'health_check.txt');
       const testContent = Date.now().toString();
-      
+
       await fs.writeFile(testFile, testContent);
       const readContent = await fs.readFile(testFile, 'utf-8');
       await fs.unlink(testFile);
-      
+
       if (readContent !== testContent) {
         throw new Error('Storage content mismatch');
       }
 
       const responseTime = Date.now() - start;
-      
+
       return {
         status: responseTime < 1000 ? 'healthy' : 'degraded',
         responseTime,
@@ -234,7 +254,7 @@ export class HealthController {
       };
     } catch (error) {
       const responseTime = Date.now() - start;
-      
+
       return {
         status: 'unhealthy',
         responseTime,
@@ -255,15 +275,17 @@ export class HealthController {
     };
   }
 
-  private determineOverallStatus(services: ServiceHealth[]): 'healthy' | 'unhealthy' | 'degraded' {
-    if (services.every(service => service.status === 'healthy')) {
+  private determineOverallStatus(
+    services: ServiceHealth[],
+  ): 'healthy' | 'unhealthy' | 'degraded' {
+    if (services.every((service) => service.status === 'healthy')) {
       return 'healthy';
     }
-    
-    if (services.some(service => service.status === 'unhealthy')) {
+
+    if (services.some((service) => service.status === 'unhealthy')) {
       return 'unhealthy';
     }
-    
+
     return 'degraded';
   }
 }

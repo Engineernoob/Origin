@@ -7,6 +7,8 @@ import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
+import type { Request } from 'express';
+import type { GoogleUser, JwtPayload } from '../common/types';
 
 @Controller('auth')
 export class AuthController {
@@ -26,7 +28,7 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req, @Res() res: Response) {
+  async googleAuthRedirect(@Req() req: Request & { user: GoogleUser }, @Res() res: Response) {
     const u = req.user; // from GoogleStrategy.validate
 
     // upsert user
@@ -39,14 +41,17 @@ export class AuthController {
     });
 
     // sign a JWT for the frontend (no Google scopes needed on FE)
-    const token = await this.jwt.signAsync({
-      sub: dbUser.id,
+    const payload: JwtPayload = {
+      sub: dbUser.id.toString(),
       email: dbUser.email,
       name: dbUser.name,
       picture: dbUser.picture,
-    });
+    };
+    
+    const token = await this.jwt.signAsync(payload);
 
-    const frontend = this.cfg.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+    const frontend =
+      this.cfg.get<string>('FRONTEND_URL') || 'http://localhost:3001';
     // Option A: redirect with token in query
     res.redirect(
       `${frontend}/auth/callback?token=${encodeURIComponent(token)}`,
@@ -55,8 +60,9 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async getCurrentUser(@Req() req) {
-    const user = await this.authService.getCurrentUser(req.user.sub);
+  async getCurrentUser(@Req() req: Request & { user: JwtPayload }) {
+    const userId = typeof req.user.sub === 'string' ? parseInt(req.user.sub, 10) : req.user.sub;
+    const user = await this.authService.getCurrentUser(userId);
     if (!user) {
       return { error: 'User not found' };
     }

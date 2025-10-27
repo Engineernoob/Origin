@@ -48,17 +48,21 @@ export class YouTubeApiService {
     @InjectQueue('youtube-training') private trainingQueue: Queue,
   ) {
     this.apiKey = this.configService.get('YOUTUBE_API_KEY');
-    this.quotaLimit = parseInt(this.configService.get('YOUTUBE_QUOTA_LIMIT', '10000'));
-    
+    this.quotaLimit = parseInt(
+      this.configService.get('YOUTUBE_QUOTA_LIMIT', '10000'),
+    );
+
     if (!this.apiKey) {
-      this.logger.warn('YouTube API key not configured - training features disabled');
+      this.logger.warn(
+        'YouTube API key not configured - training features disabled',
+      );
     }
   }
 
   async searchVideos(
     query: string,
     maxResults = 50,
-    pageToken?: string
+    pageToken?: string,
   ): Promise<YouTubeSearchResult> {
     if (!this.apiKey) {
       throw new Error('YouTube API key not configured');
@@ -93,7 +97,9 @@ export class YouTubeApiService {
 
       this.dailyQuotaUsed += 100; // Search costs 100 units
 
-      const videoIds = searchResponse.data.items.map((item: any) => item.id.videoId);
+      const videoIds = searchResponse.data.items.map(
+        (item: any) => item.id.videoId,
+      );
 
       if (videoIds.length === 0) {
         return { videos: [], totalResults: 0 };
@@ -110,22 +116,26 @@ export class YouTubeApiService {
 
       this.dailyQuotaUsed += 1; // Videos endpoint costs 1 unit per video
 
-      const videos: YouTubeVideo[] = videosResponse.data.items.map((item: any) => ({
-        id: item.id,
-        title: item.snippet.title,
-        description: item.snippet.description,
-        channelId: item.snippet.channelId,
-        channelTitle: item.snippet.channelTitle,
-        publishedAt: item.snippet.publishedAt,
-        viewCount: parseInt(item.statistics.viewCount || '0'),
-        likeCount: parseInt(item.statistics.likeCount || '0'),
-        commentCount: parseInt(item.statistics.commentCount || '0'),
-        duration: item.contentDetails.duration,
-        tags: item.snippet.tags || [],
-        categoryId: item.snippet.categoryId,
-        thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-        statistics: item.statistics,
-      }));
+      const videos: YouTubeVideo[] = videosResponse.data.items.map(
+        (item: any) => ({
+          id: item.id,
+          title: item.snippet.title,
+          description: item.snippet.description,
+          channelId: item.snippet.channelId,
+          channelTitle: item.snippet.channelTitle,
+          publishedAt: item.snippet.publishedAt,
+          viewCount: parseInt(item.statistics.viewCount || '0'),
+          likeCount: parseInt(item.statistics.likeCount || '0'),
+          commentCount: parseInt(item.statistics.commentCount || '0'),
+          duration: item.contentDetails.duration,
+          tags: item.snippet.tags || [],
+          categoryId: item.snippet.categoryId,
+          thumbnail:
+            item.snippet.thumbnails.high?.url ||
+            item.snippet.thumbnails.default?.url,
+          statistics: item.statistics,
+        }),
+      );
 
       const result: YouTubeSearchResult = {
         videos,
@@ -138,12 +148,18 @@ export class YouTubeApiService {
 
       return result;
     } catch (error) {
-      this.logger.error(`YouTube API error for query "${query}":`, error.response?.data || error.message);
+      this.logger.error(
+        `YouTube API error for query "${query}":`,
+        error.response?.data || error.message,
+      );
       throw error;
     }
   }
 
-  async getTrendingVideos(regionCode = 'US', categoryId?: string): Promise<YouTubeVideo[]> {
+  async getTrendingVideos(
+    regionCode = 'US',
+    categoryId?: string,
+  ): Promise<YouTubeVideo[]> {
     if (!this.apiKey) {
       throw new Error('YouTube API key not configured');
     }
@@ -181,7 +197,9 @@ export class YouTubeApiService {
         duration: item.contentDetails.duration,
         tags: item.snippet.tags || [],
         categoryId: item.snippet.categoryId,
-        thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+        thumbnail:
+          item.snippet.thumbnails.high?.url ||
+          item.snippet.thumbnails.default?.url,
         statistics: item.statistics,
       }));
 
@@ -190,12 +208,18 @@ export class YouTubeApiService {
 
       return videos;
     } catch (error) {
-      this.logger.error('YouTube API error for trending videos:', error.response?.data || error.message);
+      this.logger.error(
+        'YouTube API error for trending videos:',
+        error.response?.data || error.message,
+      );
       throw error;
     }
   }
 
-  async getChannelVideos(channelId: string, maxResults = 50): Promise<YouTubeVideo[]> {
+  async getChannelVideos(
+    channelId: string,
+    maxResults = 50,
+  ): Promise<YouTubeVideo[]> {
     if (!this.apiKey) {
       throw new Error('YouTube API key not configured');
     }
@@ -218,25 +242,32 @@ export class YouTubeApiService {
 
       this.dailyQuotaUsed += 1;
 
-      const uploadsPlaylistId = channelResponse.data.items[0]?.contentDetails?.relatedPlaylists?.uploads;
+      const uploadsPlaylistId =
+        channelResponse.data.items[0]?.contentDetails?.relatedPlaylists
+          ?.uploads;
 
       if (!uploadsPlaylistId) {
         return [];
       }
 
       // Get videos from uploads playlist
-      const playlistResponse = await axios.get(`${this.baseUrl}/playlistItems`, {
-        params: {
-          key: this.apiKey,
-          part: 'snippet',
-          playlistId: uploadsPlaylistId,
-          maxResults,
+      const playlistResponse = await axios.get(
+        `${this.baseUrl}/playlistItems`,
+        {
+          params: {
+            key: this.apiKey,
+            part: 'snippet',
+            playlistId: uploadsPlaylistId,
+            maxResults,
+          },
         },
-      });
+      );
 
       this.dailyQuotaUsed += 1;
 
-      const videoIds = playlistResponse.data.items.map((item: any) => item.snippet.resourceId.videoId);
+      const videoIds = playlistResponse.data.items.map(
+        (item: any) => item.snippet.resourceId.videoId,
+      );
 
       // Get detailed video information
       const videosResponse = await axios.get(`${this.baseUrl}/videos`, {
@@ -249,40 +280,52 @@ export class YouTubeApiService {
 
       this.dailyQuotaUsed += 1;
 
-      const videos: YouTubeVideo[] = videosResponse.data.items.map((item: any) => ({
-        id: item.id,
-        title: item.snippet.title,
-        description: item.snippet.description,
-        channelId: item.snippet.channelId,
-        channelTitle: item.snippet.channelTitle,
-        publishedAt: item.snippet.publishedAt,
-        viewCount: parseInt(item.statistics.viewCount || '0'),
-        likeCount: parseInt(item.statistics.likeCount || '0'),
-        commentCount: parseInt(item.statistics.commentCount || '0'),
-        duration: item.contentDetails.duration,
-        tags: item.snippet.tags || [],
-        categoryId: item.snippet.categoryId,
-        thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-        statistics: item.statistics,
-      }));
+      const videos: YouTubeVideo[] = videosResponse.data.items.map(
+        (item: any) => ({
+          id: item.id,
+          title: item.snippet.title,
+          description: item.snippet.description,
+          channelId: item.snippet.channelId,
+          channelTitle: item.snippet.channelTitle,
+          publishedAt: item.snippet.publishedAt,
+          viewCount: parseInt(item.statistics.viewCount || '0'),
+          likeCount: parseInt(item.statistics.likeCount || '0'),
+          commentCount: parseInt(item.statistics.commentCount || '0'),
+          duration: item.contentDetails.duration,
+          tags: item.snippet.tags || [],
+          categoryId: item.snippet.categoryId,
+          thumbnail:
+            item.snippet.thumbnails.high?.url ||
+            item.snippet.thumbnails.default?.url,
+          statistics: item.statistics,
+        }),
+      );
 
       // Cache for 2 hours
       await this.cacheService.set(cacheKey, videos, 7200);
 
       return videos;
     } catch (error) {
-      this.logger.error(`YouTube API error for channel ${channelId}:`, error.response?.data || error.message);
+      this.logger.error(
+        `YouTube API error for channel ${channelId}:`,
+        error.response?.data || error.message,
+      );
       throw error;
     }
   }
 
-  async collectTrainingData(categories: string[] = [], sampleSize = 1000): Promise<void> {
+  async collectTrainingData(
+    categories: string[] = [],
+    sampleSize = 1000,
+  ): Promise<void> {
     if (!this.configService.get('YOUTUBE_TRAINING_ENABLED', 'false')) {
       this.logger.log('YouTube training data collection is disabled');
       return;
     }
 
-    this.logger.log(`Starting training data collection for ${sampleSize} videos`);
+    this.logger.log(
+      `Starting training data collection for ${sampleSize} videos`,
+    );
 
     // Queue training data collection job
     await this.trainingQueue.add('collect-training-data', {
@@ -294,7 +337,9 @@ export class YouTubeApiService {
 
   async getVideoCategories(): Promise<{ [key: string]: string }> {
     const cacheKey = 'youtube:categories';
-    const cached = await this.cacheService.get<{ [key: string]: string }>(cacheKey);
+    const cached = await this.cacheService.get<{ [key: string]: string }>(
+      cacheKey,
+    );
     if (cached) {
       return cached;
     }
@@ -320,7 +365,10 @@ export class YouTubeApiService {
 
       return categories;
     } catch (error) {
-      this.logger.error('YouTube API error for categories:', error.response?.data || error.message);
+      this.logger.error(
+        'YouTube API error for categories:',
+        error.response?.data || error.message,
+      );
       return {};
     }
   }

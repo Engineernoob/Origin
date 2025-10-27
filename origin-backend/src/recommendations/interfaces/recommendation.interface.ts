@@ -1,5 +1,4 @@
 export interface RecommendationResult {
-    fromTags: any[];
-    fromSubscriptions: any[];
-  }
-  
+  fromTags: any[];
+  fromSubscriptions: any[];
+}

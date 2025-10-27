@@ -12,58 +12,67 @@ import {
 @Index(['userId', 'eventType', 'timestamp'])
 export class VideoAnalytics {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({
     type: 'enum',
-    enum: ['view', 'like', 'comment', 'share', 'subscribe', 'watch_time', 'click', 'impression'],
+    enum: [
+      'view',
+      'like',
+      'comment',
+      'share',
+      'subscribe',
+      'watch_time',
+      'click',
+      'impression',
+    ],
   })
   @Index()
-  eventType: string;
+  eventType!: string;
 
   @Column({ nullable: true })
   @Index()
-  userId: number;
+  userId!: number;
 
   @Column({ nullable: true })
   @Index()
-  videoId: number;
+  videoId!: number;
 
   @Column({ nullable: true })
   @Index()
-  channelId: number;
+  channelId!: number;
 
   @Column('jsonb', { default: {} })
-  metadata: any;
+  metadata!: any;
 
   @CreateDateColumn()
   @Index()
-  timestamp: Date;
+  timestamp!: Date;
 
   @Column({ nullable: true })
-  sessionId: string;
+  sessionId!: string;
 
   @Column({ nullable: true })
-  userAgent: string;
+  userAgent!: string;
 
   @Column({ nullable: true })
-  ipAddress: string;
+  ipAddress!: string;
 
   @Column({ nullable: true })
-  deviceType: string;
+  deviceType!: string;
 
   @Column({ nullable: true })
-  referrer: string;
+  referrer!: string;
 
   @Column({ nullable: true })
-  country: string;
+  country!: string;
 
   @Column({ nullable: true })
-  city: string;
+  city!: string;
 
   @Column({ type: 'float', nullable: true })
-  latitude: number;
+  latitude!: number;
 
   @Column({ type: 'float', nullable: true })
-  longitude: number;
+  longitude!: number;
 }

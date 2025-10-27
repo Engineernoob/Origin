@@ -5,7 +5,9 @@ import {
   Index,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { Comment } from '../comments/comments.entity';
 
 @Entity('videos')
 export class Video {
@@ -55,8 +57,8 @@ export class Video {
   isRebelContent!: boolean;
 
   // Stores as comma-separated string in Postgres
-  @Column({ type: 'text', nullable: true })
-  tags!: string[] | null; // if you prefer, switch to `@Column('simple-array', { nullable: true })`
+  @Column('simple-array', { nullable: true })
+  tags!: string[] | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
@@ -66,4 +68,7 @@ export class Video {
 
   @Column({ type: 'timestamptz', default: () => 'now()' })
   uploadedAt!: Date;
+
+  @OneToMany(() => Comment, (comment) => comment.video)
+  comments!: Comment[];
 }

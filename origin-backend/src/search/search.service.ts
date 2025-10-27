@@ -59,24 +59,24 @@ export class SearchService {
       mappings: {
         properties: {
           id: { type: 'keyword' },
-          title: { 
+          title: {
             type: 'text',
             analyzer: 'standard',
             fields: {
               keyword: { type: 'keyword' },
-              suggest: { type: 'completion' }
-            }
+              suggest: { type: 'completion' },
+            },
           },
-          description: { 
+          description: {
             type: 'text',
-            analyzer: 'standard' 
+            analyzer: 'standard',
           },
           userId: { type: 'integer' },
-          userName: { 
+          userName: {
             type: 'text',
             fields: {
-              keyword: { type: 'keyword' }
-            }
+              keyword: { type: 'keyword' },
+            },
           },
           views: { type: 'integer' },
           likes: { type: 'integer' },
@@ -235,7 +235,7 @@ export class SearchService {
       });
 
       return {
-        hits: result.body.hits.hits.map(hit => ({
+        hits: result.body.hits.hits.map((hit) => ({
           ...hit._source,
           score: hit._score,
           highlight: hit.highlight,
@@ -269,7 +269,7 @@ export class SearchService {
       });
 
       return result.body.suggest.title_suggest[0].options.map(
-        option => option._source.title
+        (option) => option._source.title,
       );
     } catch (error) {
       this.logger.error('Error getting suggestions:', error);
@@ -303,7 +303,7 @@ export class SearchService {
       });
 
       return result.body.aggregations.trending_terms.buckets.map(
-        bucket => bucket.key
+        (bucket) => bucket.key,
       );
     } catch (error) {
       this.logger.error('Error getting trending search terms:', error);

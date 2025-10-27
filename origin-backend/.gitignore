@@ -2,6 +2,7 @@
 /dist
 /node_modules
 /build
+.pnpm-store
 
 # Logs
 logs
@@ -14,6 +15,10 @@ lerna-debug.log*
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 
 # Tests
 /coverage
@@ -27,24 +32,30 @@ lerna-debug.log*
 *.launch
 .settings/
 *.sublime-workspace
-
-# IDE - VSCode
 .vscode/*
+.idea/
+*.swp
+*.swo
+
+# IDE - VSCode (keep some config files)
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
+# dotenv environment variable files (NEVER commit secrets)
 .env
 .env.development.local
 .env.test.local
 .env.production.local
 .env.local
+.env.production
+.env.example.youtube
 
 # temp directory
 .temp
 .tmp
+.cache
 
 # Runtime data
 pids
@@ -52,5 +63,72 @@ pids
 *.seed
 *.pid.lock
 
+# Database files (production should use external DB)
+*.sqlite
+*.sqlite3
+*.db
+
+# Upload and media files (should be stored externally in production)
+uploads/
+videos/
+thumbnails/
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.ogg
+*.flv
+*.wmv
+
+# SSL certificates (never commit!)
+*.pem
+*.key
+*.crt
+*.csr
+
+# Security files that might contain secrets
+config.json
+secrets.json
+api-keys.txt
+.ssh/
+
+# Deployment files
+railway.toml
+ecosystem.config.js
+.pm2/
+
+# Vercel files
+.vercel
+
+# TypeScript build info
+*.tsbuildinfo
+
+# NPM/PNPM cache
+.npm
+.pnpm-store
+
+# ESLint cache
+.eslintcache
+
+# Backup files
+*.bak
+*.backup
+
+# Temporary logs and cache
+.cache/
+.parcel-cache/
+
+# Lock file backups
+package-lock.json.backup
+yarn.lock.backup
+
+# Environment folders
+.temp/
+.tmp/
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Factory artifacts (system generated)
+.factory/

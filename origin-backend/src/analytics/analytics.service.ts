@@ -73,7 +73,6 @@ export class AnalyticsService {
 
       // Update real-time counters
       await this.updateRealTimeMetrics(event);
-
     } catch (error) {
       this.logger.error('Error tracking analytics event:', error);
     }
@@ -86,7 +85,7 @@ export class AnalyticsService {
       case 'view':
         if (event.videoId) {
           await this.cacheService.incrementViewCount(event.videoId.toString());
-          
+
           // Daily video views
           const dailyViewKey = `analytics:video:${event.videoId}:views:${today}`;
           await this.cacheService.redis.incr(dailyViewKey);
@@ -112,7 +111,10 @@ export class AnalyticsService {
       case 'watch_time':
         if (event.videoId && event.metadata?.watchTime) {
           const watchTimeKey = `analytics:video:${event.videoId}:watch_time:${today}`;
-          await this.cacheService.redis.incrby(watchTimeKey, event.metadata.watchTime);
+          await this.cacheService.redis.incrby(
+            watchTimeKey,
+            event.metadata.watchTime,
+          );
           await this.cacheService.redis.expire(watchTimeKey, 86400 * 7);
         }
         break;
@@ -122,7 +124,7 @@ export class AnalyticsService {
   async getVideoMetrics(videoId: number, days = 30): Promise<VideoMetrics> {
     const cacheKey = `analytics:video_metrics:${videoId}:${days}d`;
     const cached = await this.cacheService.get<VideoMetrics>(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
@@ -136,7 +138,7 @@ export class AnalyticsService {
       .select([
         'eventType',
         'COUNT(*) as count',
-        'AVG(CAST(metadata->>\'watchTime\' AS INTEGER)) as avgWatchTime'
+        "AVG(CAST(metadata->>'watchTime' AS INTEGER)) as avgWatchTime",
       ])
       .where('videoId = :videoId', { videoId })
       .andWhere('timestamp >= :startDate', { startDate })
@@ -159,7 +161,7 @@ export class AnalyticsService {
     };
 
     // Process analytics data
-    analytics.forEach(row => {
+    analytics.forEach((row) => {
       switch (row.eventType) {
         case 'view':
           metrics.views = parseInt(row.count);
@@ -181,7 +183,9 @@ export class AnalyticsService {
 
     // Calculate engagement rate
     if (metrics.views > 0) {
-      metrics.engagement = ((metrics.likes + metrics.comments + metrics.shares) / metrics.views) * 100;
+      metrics.engagement =
+        ((metrics.likes + metrics.comments + metrics.shares) / metrics.views) *
+        100;
     }
 
     // Get unique views from Redis
@@ -190,7 +194,7 @@ export class AnalyticsService {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      
+
       const uniqueViewKey = `analytics:video:${videoId}:unique_views:${dateStr}`;
       const uniqueViews = await this.cacheService.redis.scard(uniqueViewKey);
       metrics.uniqueViews += uniqueViews;
@@ -202,10 +206,13 @@ export class AnalyticsService {
     return metrics;
   }
 
-  async getChannelMetrics(channelId: number, days = 30): Promise<ChannelMetrics> {
+  async getChannelMetrics(
+    channelId: number,
+    days = 30,
+  ): Promise<ChannelMetrics> {
     const cacheKey = `analytics:channel_metrics:${channelId}:${days}d`;
     const cached = await this.cacheService.get<ChannelMetrics>(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
@@ -218,7 +225,7 @@ export class AnalyticsService {
       .select([
         'eventType',
         'COUNT(*) as count',
-        'COUNT(DISTINCT videoId) as uniqueVideos'
+        'COUNT(DISTINCT videoId) as uniqueVideos',
       ])
       .where('channelId = :channelId', { channelId })
       .andWhere('timestamp >= :startDate', { startDate })
@@ -236,7 +243,7 @@ export class AnalyticsService {
     };
 
     // Process analytics data
-    analytics.forEach(row => {
+    analytics.forEach((row) => {
       switch (row.eventType) {
         case 'view':
           metrics.totalViews = parseInt(row.count);
@@ -261,17 +268,25 @@ export class AnalyticsService {
   async getTrendingVideos(limit = 10, timeRange = '24h'): Promise<any[]> {
     const cacheKey = `analytics:trending:${timeRange}:${limit}`;
     const cached = await this.cacheService.get(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
 
     let hours = 24;
     switch (timeRange) {
-      case '1h': hours = 1; break;
-      case '6h': hours = 6; break;
-      case '24h': hours = 24; break;
-      case '7d': hours = 168; break;
+      case '1h':
+        hours = 1;
+        break;
+      case '6h':
+        hours = 6;
+        break;
+      case '24h':
+        hours = 24;
+        break;
+      case '7d':
+        hours = 168;
+        break;
     }
 
     const startDate = new Date();
@@ -282,10 +297,10 @@ export class AnalyticsService {
       .select([
         'videoId',
         'COUNT(*) as score',
-        'COUNT(CASE WHEN eventType = \'view\' THEN 1 END) as views',
-        'COUNT(CASE WHEN eventType = \'like\' THEN 1 END) as likes',
-        'COUNT(CASE WHEN eventType = \'comment\' THEN 1 END) as comments',
-        'COUNT(CASE WHEN eventType = \'share\' THEN 1 END) as shares'
+        "COUNT(CASE WHEN eventType = 'view' THEN 1 END) as views",
+        "COUNT(CASE WHEN eventType = 'like' THEN 1 END) as likes",
+        "COUNT(CASE WHEN eventType = 'comment' THEN 1 END) as comments",
+        "COUNT(CASE WHEN eventType = 'share' THEN 1 END) as shares",
       ])
       .where('timestamp >= :startDate', { startDate })
       .groupBy('videoId')
@@ -294,15 +309,16 @@ export class AnalyticsService {
       .getRawMany();
 
     // Calculate trending score (views * 1 + likes * 5 + comments * 10 + shares * 20)
-    const trendingWithScore = trending.map(video => ({
-      ...video,
-      trendingScore: (
-        parseInt(video.views) * 1 +
-        parseInt(video.likes) * 5 +
-        parseInt(video.comments) * 10 +
-        parseInt(video.shares) * 20
-      )
-    })).sort((a, b) => b.trendingScore - a.trendingScore);
+    const trendingWithScore = trending
+      .map((video) => ({
+        ...video,
+        trendingScore:
+          parseInt(video.views) * 1 +
+          parseInt(video.likes) * 5 +
+          parseInt(video.comments) * 10 +
+          parseInt(video.shares) * 20,
+      }))
+      .sort((a, b) => b.trendingScore - a.trendingScore);
 
     // Cache for 15 minutes
     await this.cacheService.set(cacheKey, trendingWithScore, 900);
@@ -313,20 +329,19 @@ export class AnalyticsService {
   async getViewerDemographics(videoId: number): Promise<any> {
     const cacheKey = `analytics:demographics:${videoId}`;
     const cached = await this.cacheService.get(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
 
     const demographics = await this.analyticsRepository
       .createQueryBuilder('analytics')
-      .select([
-        'deviceType',
-        'COUNT(*) as count'
-      ])
+      .select(['deviceType', 'COUNT(*) as count'])
       .where('videoId = :videoId', { videoId })
       .andWhere('eventType = :eventType', { eventType: 'view' })
-      .andWhere('timestamp >= :startDate', { startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) })
+      .andWhere('timestamp >= :startDate', {
+        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      })
       .groupBy('deviceType')
       .getRawMany();
 
@@ -341,13 +356,16 @@ export class AnalyticsService {
     return result;
   }
 
-  async generateReport(type: 'daily' | 'weekly' | 'monthly', entityId?: number): Promise<any> {
+  async generateReport(
+    type: 'daily' | 'weekly' | 'monthly',
+    entityId?: number,
+  ): Promise<any> {
     // Implementation for generating analytics reports
     const reportKey = `analytics:report:${type}:${entityId || 'global'}:${new Date().toISOString().split('T')[0]}`;
-    
+
     // This would generate comprehensive analytics reports
     // with charts, trends, insights, etc.
-    
+
     return {
       type,
       entityId,

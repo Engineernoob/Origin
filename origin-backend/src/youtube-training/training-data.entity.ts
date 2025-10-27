@@ -12,14 +12,14 @@ import {
 @Index(['videoId'])
 export class TrainingData {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ unique: true })
   @Index()
-  videoId: string;
+  videoId!: string;
 
   @Column('jsonb')
-  features: {
+  features!: {
     videoId: string;
     titleLength: number;
     descriptionLength: number;
@@ -40,7 +40,7 @@ export class TrainingData {
   };
 
   @Column('jsonb')
-  labels: {
+  labels!: {
     viralScore: number;
     engagementScore: number;
     retentionScore: number;
@@ -54,28 +54,28 @@ export class TrainingData {
     default: 'youtube_api',
   })
   @Index()
-  source: string;
+  source!: string;
 
   @Column({ type: 'float', nullable: true })
-  predictionAccuracy: number; // For tracking model performance
+  predictionAccuracy!: number; // For tracking model performance
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @CreateDateColumn()
   @Index()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // Additional metadata
   @Column('jsonb', { nullable: true })
-  rawData: any; // Store original API response for debugging
+  rawData!: any; // Store original API response for debugging
 
   @Column({ nullable: true })
-  trainingSetId: string; // For organizing training batches
+  trainingSetId!: string; // For organizing training batches
 
   @Column({ default: false })
-  isValidated: boolean; // For human validation of training quality
+  isValidated!: boolean; // For human validation of training quality
 }

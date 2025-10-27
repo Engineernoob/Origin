@@ -7,11 +7,13 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Skeleton } from "./ui/skeleton";
 import { AlertCircle, Flame, Shield, Zap } from "lucide-react";
+import { useRecommendations } from "../hooks/useRecommendations";
 
 interface VideoGridProps {
   searchQuery?: string;
   section?: string;
   onVideoClick?: (videoId: string) => void;
+  useRecommendations?: boolean;
 }
 
 type ApiVideo = {
@@ -46,8 +48,14 @@ export function VideoGrid({
   searchQuery,
   section = "home",
   onVideoClick,
+  useRecommendations: useRecs = false,
 }: VideoGridProps) {
   const router = useRouter();
+  
+  // Use recommendations for home page when enabled
+  const { recommendations, loading: recsLoading, error: recsError } = useRecommendations(
+    section === "home" && useRecs ? "mixed" : undefined
+  );
 
   const [videos, setVideos] = useState<UiVideo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,6 +103,16 @@ export function VideoGrid({
 
   // Fetch on URL/page change
   useEffect(() => {
+    // If we're on home and recommendations are enabled, use recommendations
+    if (section === "home" && useRecs && recommendations.length > 0) {
+      const recsVideos = recommendations.map(mapVideo);
+      setVideos(recsVideos);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
+    // Otherwise fetch from regular API
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -121,9 +139,10 @@ export function VideoGrid({
         const mapped = json.map(mapVideo);
         setVideos((prev) => (page === 1 ? mapped : [...prev, ...mapped]));
         setError(null);
-      } catch (e: any) {
-        if (e?.name !== "AbortError") {
-          console.error(e);
+      } catch (e: unknown) {
+        const error = e instanceof Error ? e : new Error('Unknown error');
+        if ("name" in error && error.name !== "AbortError") {
+          console.error(error);
           setError("Network error while loading videos.");
           if (page === 1) setVideos([]);
         }
@@ -134,7 +153,7 @@ export function VideoGrid({
     })();
 
     return () => controller.abort();
-  }, [API_URL, page]);
+  }, [API_URL, page, section, useRecs, recommendations]);
 
   const loadMore = () => {
     setLoadingMore(true);
@@ -246,7 +265,7 @@ export function VideoGrid({
       {searchQuery && (
         <div className="mb-4 rounded-lg bg-muted/50 p-4">
           <p>
-            Showing results for: <strong>"{searchQuery}"</strong>
+            Showing results for: <strong>&quot;{searchQuery}&quot;</strong>
             {videos.length > 0 && (
               <span className="text-muted-foreground">
                 {" "}

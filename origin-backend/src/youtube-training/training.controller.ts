@@ -22,7 +22,7 @@ export class TrainingController {
     const size = sampleSize ? parseInt(sampleSize) : 1000;
 
     await this.trainingDataService.collectTrainingData(categoriesArray, size);
-    
+
     return {
       message: 'Training data collection started',
       categories: categoriesArray,
@@ -35,11 +35,18 @@ export class TrainingController {
     @Query('type') modelType?: string,
     @Query('size') trainingSize?: string,
   ) {
-    const type = modelType as 'viral_prediction' | 'engagement_prediction' | 'retention_prediction' || 'viral_prediction';
+    const type =
+      (modelType as
+        | 'viral_prediction'
+        | 'engagement_prediction'
+        | 'retention_prediction') || 'viral_prediction';
     const size = trainingSize ? parseInt(trainingSize) : 5000;
 
-    const model = await this.mlTrainingService.trainRecommendationModel(type, size);
-    
+    const model = await this.mlTrainingService.trainRecommendationModel(
+      type,
+      size,
+    );
+
     return {
       message: 'Model training completed',
       modelId: model.modelId,
@@ -51,7 +58,7 @@ export class TrainingController {
   @Post('retrain-all')
   async retrainAllModels() {
     await this.mlTrainingService.retrainAllModels();
-    
+
     return {
       message: 'All models retrained successfully',
     };
@@ -76,8 +83,11 @@ export class TrainingController {
     @Query('region') regionCode?: string,
     @Query('category') categoryId?: string,
   ) {
-    const videos = await this.youtubeApiService.getTrendingVideos(regionCode, categoryId);
-    
+    const videos = await this.youtubeApiService.getTrendingVideos(
+      regionCode,
+      categoryId,
+    );
+
     return {
       count: videos.length,
       videos: videos.slice(0, 10), // Return first 10 for preview
@@ -95,7 +105,7 @@ export class TrainingController {
 
     const max = maxResults ? parseInt(maxResults) : 10;
     const result = await this.youtubeApiService.searchVideos(query, max);
-    
+
     return {
       query,
       totalResults: result.totalResults,
@@ -108,7 +118,7 @@ export class TrainingController {
   @Get('categories')
   async getVideoCategories() {
     const categories = await this.youtubeApiService.getVideoCategories();
-    
+
     return {
       categories,
       count: Object.keys(categories).length,

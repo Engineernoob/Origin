@@ -37,8 +37,10 @@ export class WebSocketGateway
   async handleConnection(client: AuthenticatedSocket, ...args: any[]) {
     try {
       // Extract user info from JWT token in handshake auth
-      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '');
-      
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.replace('Bearer ', '');
+
       if (token) {
         // You'll need to verify the JWT token here
         // const user = await this.authService.verifyToken(token);
@@ -64,11 +66,11 @@ export class WebSocketGateway
   @SubscribeMessage('joinVideoRoom')
   async handleJoinVideoRoom(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { videoId: string }
+    @MessageBody() data: { videoId: string },
   ) {
     const room = `video:${data.videoId}`;
     await client.join(room);
-    
+
     // Broadcast that a user joined
     client.to(room).emit('userJoined', {
       userId: client.userId,
@@ -86,11 +88,11 @@ export class WebSocketGateway
   @SubscribeMessage('leaveVideoRoom')
   async handleLeaveVideoRoom(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { videoId: string }
+    @MessageBody() data: { videoId: string },
   ) {
     const room = `video:${data.videoId}`;
     await client.leave(room);
-    
+
     // Broadcast that a user left
     client.to(room).emit('userLeft', {
       userId: client.userId,
@@ -109,7 +111,8 @@ export class WebSocketGateway
   @UseGuards(JwtAuthGuard)
   async handleComment(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { videoId: string; content: string; parentId?: string }
+    @MessageBody()
+    data: { videoId: string; content: string; parentId?: string },
   ) {
     if (!client.userId) {
       return { error: 'Unauthorized' };
@@ -139,7 +142,7 @@ export class WebSocketGateway
   @UseGuards(JwtAuthGuard)
   async handleLikeComment(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { commentId: string; videoId: string }
+    @MessageBody() data: { commentId: string; videoId: string },
   ) {
     if (!client.userId) {
       return { error: 'Unauthorized' };
@@ -161,11 +164,14 @@ export class WebSocketGateway
   @SubscribeMessage('videoProgress')
   handleVideoProgress(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { videoId: string; currentTime: number; duration: number }
+    @MessageBody()
+    data: { videoId: string; currentTime: number; duration: number },
   ) {
     // Track video watch progress for analytics
     // You can save this data for recommendation algorithms
-    this.logger.debug(`User ${client.userId} progress on video ${data.videoId}: ${data.currentTime}/${data.duration}`);
+    this.logger.debug(
+      `User ${client.userId} progress on video ${data.videoId}: ${data.currentTime}/${data.duration}`,
+    );
   }
 
   // Admin methods

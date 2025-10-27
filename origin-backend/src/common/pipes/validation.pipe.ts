@@ -18,7 +18,7 @@ export class ValidationPipe implements PipeTransform<any> {
     const errors = await validate(object);
 
     if (errors.length > 0) {
-      const errorMessages = errors.map(error => ({
+      const errorMessages = errors.map((error) => ({
         property: error.property,
         constraints: error.constraints,
       }));

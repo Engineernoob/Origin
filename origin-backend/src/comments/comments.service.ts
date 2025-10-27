@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Comment } from './comments.entity';
@@ -22,17 +26,22 @@ export class CommentsService {
     private cacheService: CacheService,
   ) {}
 
-  async create(userId: number, createCommentDto: CreateCommentDto): Promise<Comment> {
+  async create(
+    userId: number,
+    createCommentDto: CreateCommentDto,
+  ): Promise<Comment> {
     const comment = this.commentsRepository.create({
       ...createCommentDto,
       userId,
     });
 
     const savedComment = await this.commentsRepository.save(comment);
-    
+
     // Invalidate video comments cache
-    await this.cacheService.invalidatePattern(`comments:video:${createCommentDto.videoId}:*`);
-    
+    await this.cacheService.invalidatePattern(
+      `comments:video:${createCommentDto.videoId}:*`,
+    );
+
     // Load the comment with user relationship
     return this.commentsRepository.findOne({
       where: { id: savedComment.id },
@@ -41,13 +50,13 @@ export class CommentsService {
   }
 
   async findByVideoId(
-    videoId: number, 
-    page = 1, 
+    videoId: number,
+    page = 1,
     limit = 20,
-    userId?: number
+    userId?: number,
   ): Promise<{ comments: Comment[]; total: number; hasMore: boolean }> {
     const cacheKey = `comments:video:${videoId}:page:${page}:limit:${limit}`;
-    
+
     // Try to get from cache first
     const cached = await this.cacheService.get(cacheKey);
     if (cached) {
@@ -58,8 +67,8 @@ export class CommentsService {
 
     // Get top-level comments
     const [comments, total] = await this.commentsRepository.findAndCount({
-      where: { 
-        videoId, 
+      where: {
+        videoId,
         parentId: null, // Only top-level comments
         isDeleted: false,
       },
@@ -99,15 +108,15 @@ export class CommentsService {
 
     // Cache for 5 minutes
     await this.cacheService.set(cacheKey, result, 300);
-    
+
     return result;
   }
 
   async findReplies(
-    parentId: number, 
-    page = 1, 
+    parentId: number,
+    page = 1,
     limit = 10,
-    userId?: number
+    userId?: number,
   ): Promise<{ replies: Comment[]; total: number; hasMore: boolean }> {
     const skip = (page - 1) * limit;
 
@@ -133,7 +142,11 @@ export class CommentsService {
     };
   }
 
-  async update(id: number, userId: number, updateCommentDto: UpdateCommentDto): Promise<Comment> {
+  async update(
+    id: number,
+    userId: number,
+    updateCommentDto: UpdateCommentDto,
+  ): Promise<Comment> {
     const comment = await this.commentsRepository.findOne({
       where: { id },
       relations: ['user'],
@@ -151,10 +164,12 @@ export class CommentsService {
     comment.isEdited = true;
 
     const updatedComment = await this.commentsRepository.save(comment);
-    
+
     // Invalidate cache
-    await this.cacheService.invalidatePattern(`comments:video:${comment.videoId}:*`);
-    
+    await this.cacheService.invalidatePattern(
+      `comments:video:${comment.videoId}:*`,
+    );
+
     return updatedComment;
   }
 
@@ -174,16 +189,23 @@ export class CommentsService {
     // Soft delete
     comment.isDeleted = true;
     comment.content = '[deleted]';
-    
+
     await this.commentsRepository.save(comment);
-    
+
     // Invalidate cache
-    await this.cacheService.invalidatePattern(`comments:video:${comment.videoId}:*`);
+    await this.cacheService.invalidatePattern(
+      `comments:video:${comment.videoId}:*`,
+    );
   }
 
-  async toggleLike(commentId: number, userId: number): Promise<{ liked: boolean; likesCount: number }> {
-    const comment = await this.commentsRepository.findOne({ where: { id: commentId } });
-    
+  async toggleLike(
+    commentId: number,
+    userId: number,
+  ): Promise<{ liked: boolean; likesCount: number }> {
+    const comment = await this.commentsRepository.findOne({
+      where: { id: commentId },
+    });
+
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
@@ -202,9 +224,11 @@ export class CommentsService {
     }
 
     await this.commentsRepository.save(comment);
-    
+
     // Invalidate comments cache
-    await this.cacheService.invalidatePattern(`comments:video:${comment.videoId}:*`);
+    await this.cacheService.invalidatePattern(
+      `comments:video:${comment.videoId}:*`,
+    );
 
     return {
       liked: !hasLiked,
@@ -212,7 +236,10 @@ export class CommentsService {
     };
   }
 
-  private async checkUserLiked(commentId: number, userId: number): Promise<boolean> {
+  private async checkUserLiked(
+    commentId: number,
+    userId: number,
+  ): Promise<boolean> {
     const likeKey = `comment:like:${commentId}:${userId}`;
     const liked = await this.cacheService.get(likeKey);
     return !!liked;

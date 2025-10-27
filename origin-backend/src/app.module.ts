@@ -10,6 +10,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { YoutubeModule } from './youtube/youtube.module';
 import { AuthModule } from './auth/auth.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
 
 @Module({
   imports: [
@@ -44,12 +45,14 @@ import { AuthModule } from './auth/auth.module';
         migrations: ['dist/migrations/*{.ts,.js}'],
         migrationsRun: process.env.NODE_ENV === 'production',
         logging: process.env.NODE_ENV === 'development',
+        strict: false,
       }),
     }),
     VideosModule,
     UsersModule,
     YoutubeModule,
     AuthModule,
+    RecommendationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

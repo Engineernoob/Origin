@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TrainingDataService, TrainingExample, VideoFeatures } from './training-data.service';
+import {
+  TrainingDataService,
+  TrainingExample,
+  VideoFeatures,
+} from './training-data.service';
 import { CacheService } from '../cache/cache.service';
 import { RecommendationService } from '../recommendation/recommendation.service';
 
@@ -36,20 +40,31 @@ export class MLTrainingService {
   }
 
   async trainRecommendationModel(
-    modelType: 'viral_prediction' | 'engagement_prediction' | 'retention_prediction' = 'viral_prediction',
-    trainingSize = 10000
+    modelType:
+      | 'viral_prediction'
+      | 'engagement_prediction'
+      | 'retention_prediction' = 'viral_prediction',
+    trainingSize = 10000,
   ): Promise<MLModel> {
-    this.logger.log(`Starting ${modelType} model training with ${trainingSize} examples`);
+    this.logger.log(
+      `Starting ${modelType} model training with ${trainingSize} examples`,
+    );
 
     // 1. Get training data
-    const trainingData = await this.trainingDataService.getTrainingDataset(trainingSize);
-    
+    const trainingData =
+      await this.trainingDataService.getTrainingDataset(trainingSize);
+
     if (trainingData.length < 100) {
-      throw new Error('Insufficient training data. Need at least 100 examples.');
+      throw new Error(
+        'Insufficient training data. Need at least 100 examples.',
+      );
     }
 
     // 2. Prepare features and labels
-    const { features, labels } = this.prepareTrainingData(trainingData, modelType);
+    const { features, labels } = this.prepareTrainingData(
+      trainingData,
+      modelType,
+    );
 
     // 3. Split data into training and validation sets
     const splitIndex = Math.floor(features.length * 0.8);
@@ -59,23 +74,33 @@ export class MLTrainingService {
     const validLabels = labels.slice(splitIndex);
 
     // 4. Train the model (using simplified linear regression for demonstration)
-    const model = await this.trainLinearRegression(trainFeatures, trainLabels, modelType);
+    const model = await this.trainLinearRegression(
+      trainFeatures,
+      trainLabels,
+      modelType,
+    );
 
     // 5. Validate the model
-    const accuracy = await this.validateModel(model, validFeatures, validLabels);
+    const accuracy = await this.validateModel(
+      model,
+      validFeatures,
+      validLabels,
+    );
     model.accuracy = accuracy;
 
     // 6. Save the model
     await this.saveModel(model);
 
-    this.logger.log(`Model training completed. Accuracy: ${(accuracy * 100).toFixed(2)}%`);
-    
+    this.logger.log(
+      `Model training completed. Accuracy: ${(accuracy * 100).toFixed(2)}%`,
+    );
+
     return model;
   }
 
   private prepareTrainingData(
     trainingData: TrainingExample[],
-    modelType: string
+    modelType: string,
   ): { features: number[][]; labels: number[] } {
     const features: number[][] = [];
     const labels: number[] = [];
@@ -114,33 +139,34 @@ export class MLTrainingService {
       Math.log(features.titleLength + 1),
       Math.log(features.descriptionLength + 1),
       features.tagCount,
-      
+
       // Engagement features
       Math.log(features.viewCount + 1),
       Math.log(features.likeCount + 1),
       Math.log(features.commentCount + 1),
       features.engagementRate,
-      
+
       // Timing features
       features.durationMinutes,
-      Math.sin(2 * Math.PI * features.publishHour / 24), // Cyclical hour encoding
-      Math.cos(2 * Math.PI * features.publishHour / 24),
-      Math.sin(2 * Math.PI * features.publishDayOfWeek / 7), // Cyclical day encoding
-      Math.cos(2 * Math.PI * features.publishDayOfWeek / 7),
-      
+      Math.sin((2 * Math.PI * features.publishHour) / 24), // Cyclical hour encoding
+      Math.cos((2 * Math.PI * features.publishHour) / 24),
+      Math.sin((2 * Math.PI * features.publishDayOfWeek) / 7), // Cyclical day encoding
+      Math.cos((2 * Math.PI * features.publishDayOfWeek) / 7),
+
       // Sentiment features
       features.titleSentiment,
       features.descriptionSentiment,
-      
+
       // Performance features
       Math.log(features.viewsPerHour + 1),
-      
+
       // Category encoding (simplified - would use one-hot in production)
       parseInt(features.categoryId) || 0,
-      
+
       // Tag popularity (average)
-      features.tagsPopularity.length > 0 
-        ? features.tagsPopularity.reduce((a, b) => a + b, 0) / features.tagsPopularity.length 
+      features.tagsPopularity.length > 0
+        ? features.tagsPopularity.reduce((a, b) => a + b, 0) /
+          features.tagsPopularity.length
         : 0,
     ];
   }
@@ -148,12 +174,14 @@ export class MLTrainingService {
   private async trainLinearRegression(
     features: number[][],
     labels: number[],
-    modelType: string
+    modelType: string,
   ): Promise<MLModel> {
     const featureCount = features[0].length;
-    
+
     // Initialize weights and bias randomly
-    let weights = Array(featureCount).fill(0).map(() => (Math.random() - 0.5) * 0.1);
+    const weights = Array(featureCount)
+      .fill(0)
+      .map(() => (Math.random() - 0.5) * 0.1);
     let bias = 0;
 
     // Hyperparameters
@@ -171,7 +199,7 @@ export class MLTrainingService {
       for (let i = 0; i < features.length; i++) {
         const prediction = this.predict(features[i], weights, bias);
         const error = prediction - labels[i];
-        
+
         totalLoss += error * error;
 
         // Compute gradients
@@ -183,7 +211,9 @@ export class MLTrainingService {
 
       // Update weights and bias
       for (let j = 0; j < featureCount; j++) {
-        weights[j] -= learningRate * (weightGradients[j] / features.length + regularization * weights[j]);
+        weights[j] -=
+          learningRate *
+          (weightGradients[j] / features.length + regularization * weights[j]);
       }
       bias -= learningRate * (biasGradient / features.length);
 
@@ -224,19 +254,23 @@ export class MLTrainingService {
   private async validateModel(
     model: MLModel,
     validFeatures: number[][],
-    validLabels: number[]
+    validLabels: number[],
   ): Promise<number> {
     let correctPredictions = 0;
     let totalError = 0;
 
     for (let i = 0; i < validFeatures.length; i++) {
-      const prediction = this.predict(validFeatures[i], model.weights, model.biases[0]);
+      const prediction = this.predict(
+        validFeatures[i],
+        model.weights,
+        model.biases[0],
+      );
       const actual = validLabels[i];
-      
+
       // For binary classification (high/low performance)
       const predictedClass = prediction > 0.5 ? 1 : 0;
       const actualClass = actual > 0.5 ? 1 : 0;
-      
+
       if (predictedClass === actualClass) {
         correctPredictions++;
       }
@@ -247,25 +281,36 @@ export class MLTrainingService {
     const accuracy = correctPredictions / validFeatures.length;
     const mae = totalError / validFeatures.length;
 
-    this.logger.log(`Model validation - Accuracy: ${(accuracy * 100).toFixed(2)}%, MAE: ${mae.toFixed(4)}`);
-    
+    this.logger.log(
+      `Model validation - Accuracy: ${(accuracy * 100).toFixed(2)}%, MAE: ${mae.toFixed(4)}`,
+    );
+
     return accuracy;
   }
 
-  async predictVideoPerformance(features: VideoFeatures, modelType = 'viral_prediction'): Promise<PredictionResult> {
+  async predictVideoPerformance(
+    features: VideoFeatures,
+    modelType = 'viral_prediction',
+  ): Promise<PredictionResult> {
     const model = this.currentModels.get(modelType);
     if (!model) {
-      throw new Error(`Model ${modelType} not found. Please train the model first.`);
+      throw new Error(
+        `Model ${modelType} not found. Please train the model first.`,
+      );
     }
 
     const featureVector = this.extractFeatureVector(features);
     const score = this.predict(featureVector, model.weights, model.biases[0]);
-    
+
     // Calculate confidence based on feature similarity to training data
     const confidence = this.calculateConfidence(featureVector, model);
 
     // Identify important factors
-    const factors = this.identifyFactors(featureVector, model.weights, model.features);
+    const factors = this.identifyFactors(
+      featureVector,
+      model.weights,
+      model.features,
+    );
 
     return {
       videoId: features.videoId,
@@ -279,34 +324,42 @@ export class MLTrainingService {
     // Simplified confidence calculation
     // In practice, you'd use techniques like prediction intervals
     let confidence = 0.7; // Base confidence
-    
+
     // Adjust based on feature ranges (features within expected ranges get higher confidence)
     for (let i = 0; i < features.length; i++) {
       const feature = features[i];
-      if (feature < -5 || feature > 5) { // Features outside expected range
+      if (feature < -5 || feature > 5) {
+        // Features outside expected range
         confidence -= 0.1;
       }
     }
-    
+
     return Math.max(0.1, Math.min(1.0, confidence));
   }
 
-  private identifyFactors(features: number[], weights: number[], featureNames: string[]): { [key: string]: number } {
+  private identifyFactors(
+    features: number[],
+    weights: number[],
+    featureNames: string[],
+  ): { [key: string]: number } {
     const factors: { [key: string]: number } = {};
-    
+
     for (let i = 0; i < features.length; i++) {
       const contribution = features[i] * weights[i];
       factors[featureNames[i]] = contribution;
     }
-    
+
     // Sort by absolute contribution
     const sortedFactors = Object.entries(factors)
-      .sort(([,a], [,b]) => Math.abs(b) - Math.abs(a))
+      .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
       .slice(0, 5) // Top 5 factors
-      .reduce((obj, [key, value]) => {
-        obj[key] = value;
-        return obj;
-      }, {} as { [key: string]: number });
+      .reduce(
+        (obj, [key, value]) => {
+          obj[key] = value;
+          return obj;
+        },
+        {} as { [key: string]: number },
+      );
 
     return sortedFactors;
   }
@@ -314,7 +367,7 @@ export class MLTrainingService {
   private getFeatureNames(): string[] {
     return [
       'log_title_length',
-      'log_description_length', 
+      'log_description_length',
       'tag_count',
       'log_view_count',
       'log_like_count',
@@ -352,16 +405,22 @@ export class MLTrainingService {
 
   private async loadExistingModels(): Promise<void> {
     // Load existing models from cache/database
-    const modelTypes = ['viral_prediction', 'engagement_prediction', 'retention_prediction'];
-    
+    const modelTypes = [
+      'viral_prediction',
+      'engagement_prediction',
+      'retention_prediction',
+    ];
+
     for (const modelType of modelTypes) {
       try {
         const cacheKey = `ml_model:latest:${modelType}`;
         const model = await this.cacheService.get<MLModel>(cacheKey);
-        
+
         if (model) {
           this.currentModels.set(modelType, model);
-          this.logger.log(`Loaded existing ${modelType} model (accuracy: ${(model.accuracy * 100).toFixed(2)}%)`);
+          this.logger.log(
+            `Loaded existing ${modelType} model (accuracy: ${(model.accuracy * 100).toFixed(2)}%)`,
+          );
         }
       } catch (error) {
         this.logger.warn(`Could not load ${modelType} model:`, error);
@@ -387,9 +446,13 @@ export class MLTrainingService {
 
   async retrainAllModels(): Promise<void> {
     this.logger.log('Starting retraining of all models');
-    
-    const modelTypes = ['viral_prediction', 'engagement_prediction', 'retention_prediction'];
-    
+
+    const modelTypes = [
+      'viral_prediction',
+      'engagement_prediction',
+      'retention_prediction',
+    ];
+
     for (const modelType of modelTypes) {
       try {
         await this.trainRecommendationModel(modelType as any);
@@ -398,7 +461,7 @@ export class MLTrainingService {
         this.logger.error(`Failed to retrain ${modelType} model:`, error);
       }
     }
-    
+
     this.logger.log('Model retraining completed');
   }
 }

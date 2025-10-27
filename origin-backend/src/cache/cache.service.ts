@@ -105,7 +105,11 @@ export class CacheService {
   }
 
   // User session cache
-  async cacheUserSession(userId: number, data: any, ttl = 86400): Promise<void> {
+  async cacheUserSession(
+    userId: number,
+    data: any,
+    ttl = 86400,
+  ): Promise<void> {
     await this.set(`session:${userId}`, data, ttl);
   }
 
@@ -123,7 +127,11 @@ export class CacheService {
   }
 
   // Rate limiting
-  async checkRateLimit(key: string, limit: number, windowSeconds: number): Promise<boolean> {
+  async checkRateLimit(
+    key: string,
+    limit: number,
+    windowSeconds: number,
+  ): Promise<boolean> {
     try {
       const current = await this.redis.incr(key);
       if (current === 1) {

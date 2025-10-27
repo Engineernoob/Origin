@@ -26,7 +26,11 @@ export class UsersService {
     return this.userRepo.findOneBy({ email });
   }
 
-  async updateTokens(email: string, accessToken: string, refreshToken: string): Promise<void> {
+  async updateTokens(
+    email: string,
+    accessToken: string,
+    refreshToken: string,
+  ): Promise<void> {
     await this.userRepo.update({ email }, { accessToken, refreshToken });
   }
 

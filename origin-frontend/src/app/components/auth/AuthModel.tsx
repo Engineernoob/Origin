@@ -19,7 +19,7 @@ import { Flame, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAuthSuccess?: (user: any) => void;
+  onAuthSuccess?: (user: { id: number; email: string; name: string; picture?: string }) => void;
   defaultMode?: "signin" | "signup";
 }
 

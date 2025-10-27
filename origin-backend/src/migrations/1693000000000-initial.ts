@@ -45,7 +45,9 @@ export class Initial1693000000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "videos" DROP CONSTRAINT "FK_4f1ba5a4147e6c6b4a60a24a0e3"`);
+    await queryRunner.query(
+      `ALTER TABLE "videos" DROP CONSTRAINT "FK_4f1ba5a4147e6c6b4a60a24a0e3"`,
+    );
     await queryRunner.query(`DROP TABLE "videos"`);
     await queryRunner.query(`DROP TABLE "users"`);
   }
