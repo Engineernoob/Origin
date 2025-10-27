@@ -6,15 +6,22 @@ const API_BASE =
   'https://originvideo.duckdns.org';
 
 interface Recommendation {
-  id: string;
-  title: string;
-  thumbnailUrl: string;
-  duration: string;
-  views: number;
-  publishedAt: string;
-  channel: { name: string; avatarUrl?: string; verified?: boolean };
-  tags?: string[];
-  isRebelContent?: boolean;
+  userId: string;
+  videoId: number;
+  score: number;
+  reason: string;
+  algorithm: string;
+  trainedWith: string;
+  metadata?: {
+    userPreferences?: string[];
+    watchHistory?: number[];
+    similarUsers?: string[];
+    category?: string;
+    trendingScore?: number;
+    watchTime?: number;
+    channelAffinity?: number;
+    topicSimilarity?: number;
+  };
 }
 
 export function useRecommendations(algorithm?: string, videoId?: string) {

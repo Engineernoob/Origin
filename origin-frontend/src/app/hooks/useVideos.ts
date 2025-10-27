@@ -6,7 +6,7 @@ const fetcher = (url: string) =>
     return r.json();
   });
 
-// Fallback demo videos for when backend is not available
+// Enhanced demo videos matching the new backend structure
 const demoVideos = [
   {
     id: 1,
@@ -15,7 +15,12 @@ const demoVideos = [
     thumbnail: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
     videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
     views: 2543000,
-    createdAt: "2024-01-15T00:00:00.000Z"
+    createdAt: "2024-01-15T00:00:00.000Z",
+    tags: ["animation", "open source", "blender", "short film"],
+    category: "Film & Animation",
+    duration: 596, // seconds
+    channelId: "demo-channel-1",
+    channelTitle: "Blender Foundation"
   },
   {
     id: 2,
@@ -24,7 +29,12 @@ const demoVideos = [
     thumbnail: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg",
     videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
     views: 1832000,
-    createdAt: "2024-02-10T00:00:00.000Z"
+    createdAt: "2024-02-10T00:00:00.000Z",
+    tags: ["animation", "fantasy", "blender", "open movie"],
+    category: "Film & Animation",
+    duration: 653, // seconds
+    channelId: "demo-channel-2", 
+    channelTitle: "Blender Institute"
   },
   {
     id: 3,
@@ -33,7 +43,12 @@ const demoVideos = [
     thumbnail: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/Sintel.jpg",
     videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
     views: 3421000,
-    createdAt: "2024-03-05T00:00:00.000Z"
+    createdAt: "2024-03-05T00:00:00.000Z",
+    tags: ["animation", "adventure", "dragon", "blender", "fantasy"],
+    category: "Film & Animation", 
+    duration: 888, // seconds
+    channelId: "demo-channel-1",
+    channelTitle: "Blender Foundation"
   }
 ];
 
@@ -64,13 +79,19 @@ export function useVideos(params: Params) {
         
         const absoluteUrl = url.startsWith('/') ? `${baseUrl}${url}` : url;
         
-        console.log("Fetching videos from:", absoluteUrl);
+        console.log("📺 Fetching videos from:", absoluteUrl);
         const response = await fetch(absoluteUrl, { credentials: "include" });
-        if (!response.ok) throw new Error("Failed to fetch");
-        return response.json();
+        if (!response.ok) {
+          console.error("🚫 Backend API error:", response.status, response.statusText);
+          throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log("✅ Backend API response:", data);
+        return data;
       } catch (err) {
         // If API fails, return demo videos
-        console.warn("Backend API unavailable, using demo videos:", err);
+        console.log("🔍 Backend API error:", err);
+        console.log("📺 Using fallback demo videos");
         return demoVideos;
       }
     },
