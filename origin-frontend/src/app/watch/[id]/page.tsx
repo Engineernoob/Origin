@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 // Demo video data
 const videos = [
@@ -59,12 +60,7 @@ const videos = [
   }
 ];
 
-// Generate static params for static export
-export async function generateStaticParams() {
-  return videos.map(video => ({
-    id: video.id
-  }));
-}
+"use client";
 
 interface VideoPageProps {
   params: { id: string };

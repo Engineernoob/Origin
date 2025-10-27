@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Disable image optimization for static export
   images: { 
-    unoptimized: true,
     domains: [
       "images.unsplash.com",
       "picsum.photos", 
@@ -17,10 +15,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Enable static export for serving with simple HTTP server
-  output: 'export',
-  // Disable rewrites since we're using static export
-  trailingSlash: true,
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || "https://originvideo.duckdns.org";
+    return [
+      { 
+        source: "/api/:path*", 
+        destination: `${backendUrl}/api/:path*`
+      },
+    ];
+  },
   env: {
     CUSTOM_API_URL: process.env.CUSTOM_API_URL,
     BACKEND_URL: process.env.BACKEND_URL,
@@ -34,10 +37,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Base path for static assets
-  basePath: '',
-  // Asset prefix for CDN
-  assetPrefix: '',
 };
 
 export default nextConfig;
